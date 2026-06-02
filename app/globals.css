@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+/*
+ * Voyager design tokens.
+ * Palette adapted from the One Dark / Atom aesthetic (cf. odysseus):
+ * deep slate background, cyan brand accent, warm red primary, green for gains.
+ */
+@theme {
+  --color-background: #282c34;
+  --color-panel: #21252b;
+  --color-panel-elevated: #2c313a;
+
+  --color-foreground: #c8d3da;
+  --color-muted: #828997;
+  --color-faint: #5c6370;
+
+  --color-border: #2f3540;
+  --color-border-accent: #355a66;
+
+  --color-brand: #9cdef2;
+  --color-primary: #e06c75;
+  --color-primary-foreground: #1b1d23;
+
+  --color-positive: #50fa7b;
+  --color-negative: #e06c75;
+  --color-warning: #f0ad4e;
+  --color-info: #61afef;
+  --color-purple: #c678dd;
+
+  --font-mono: var(--font-fira-code), ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+
+  --radius-card: 6px;
+  --radius-button: 8px;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* react-grid-layout chrome */
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-border-accent);
+  opacity: 0.25;
+  border-radius: var(--radius-card);
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  border-right-color: var(--color-faint);
+  border-bottom-color: var(--color-faint);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-accent);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
