@@ -1,6 +1,6 @@
 /**
  * Minimal semicolon-delimited CSV parser for Trade Republic exports.
- * TR uses `;` as delimiter and UTF-8 encoding (CLAUDE.md §8.2).
+ * TR uses `;` as delimiter and UTF-8 encoding.
  * Pure function — no fetch, no DB. Handles quoted fields containing `;`.
  */
 

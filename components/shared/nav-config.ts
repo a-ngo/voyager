@@ -26,7 +26,7 @@ export interface NavItem {
 
 /**
  * Navigation as data — the single source of truth for the sidebar.
- * Adding a page = add one entry here + create the route. See CLAUDE.md §3.6.
+ * Adding a page = add one entry here + create the route.
  */
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'core' },

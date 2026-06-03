@@ -1,5 +1,5 @@
 /**
- * PII hard-strip + column allowlist for Trade Republic imports (CLAUDE.md §8.2).
+ * PII hard-strip + column allowlist for Trade Republic imports.
  *
  * The importer must EXPLICITLY allowlist columns. Unknown or new columns default
  * to skipped — this future-proofs against TR adding new PII columns.

@@ -24,7 +24,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — never commit secrets (see CLAUDE.md §4.1)
+# env files — never commit secrets
 .env
 .env*.local
 .env.local

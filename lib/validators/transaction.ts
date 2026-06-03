@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-/** Domain-level validators shared across API boundaries (CLAUDE.md §5.1). */
+/** Domain-level validators shared across API boundaries. */
 
 export const TransactionTypeSchema = z.enum([
   'buy',

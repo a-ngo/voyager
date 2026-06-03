@@ -3,7 +3,7 @@ import type { TransactionType } from '../types'
 /**
  * Maps Trade Republic transaction types to Voyager's internal type system.
  * If TR introduces an unknown type, the row is rejected and reported —
- * never silently dropped (CLAUDE.md §8.3).
+ * never silently dropped.
  */
 export const TR_TYPE_MAP: Record<string, TransactionType> = {
   BUY: 'buy',

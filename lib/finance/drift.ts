@@ -1,5 +1,5 @@
 /**
- * Allocation drift vs. target (CLAUDE.md §3.4).
+ * Allocation drift vs. target.
  * Pure function: plain data in, typed result out. No formatting, no DB, no fetch.
  */
 

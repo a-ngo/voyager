@@ -13,7 +13,7 @@ const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   other: 'Other',
 }
 
-/** Browse + add widgets. Reads entirely from WIDGET_REGISTRY (CLAUDE.md §3.5). */
+/** Browse + add widgets. Reads entirely from WIDGET_REGISTRY. */
 export function WidgetPicker({
   open,
   onClose,

@@ -50,7 +50,7 @@ describe('prepareTradeRepublicImport — happy path', () => {
   })
 })
 
-describe('PII stripping (CLAUDE.md §8.2)', () => {
+describe('PII stripping', () => {
   it('drops PII columns via the allowlist before mapping', () => {
     const raw = {
       type: 'BUY',

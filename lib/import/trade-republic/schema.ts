@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * Validates a single raw TR CSV row AFTER PII stripping (CLAUDE.md §8.7).
+ * Validates a single raw TR CSV row AFTER PII stripping.
  * PII columns (counterparty_name, counterparty_iban, payment_reference) are
  * stripped before this schema runs — they never appear here.
  */

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils/cn'
 
 /**
  * Shared chrome for every widget: header, drag handle (edit mode), remove button.
- * Edit controls are never rendered in view mode (CLAUDE.md §3.5).
+ * Edit controls are never rendered in view mode.
  */
 export function WidgetShell({
   title,

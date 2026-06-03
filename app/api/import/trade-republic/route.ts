@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server'
 import { importTradeRepublicCsv, type PersistTransaction } from '@/lib/import/trade-republic/importer'
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB (CLAUDE.md §8.6)
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 /**
  * POST /api/import/trade-republic
  * Accepts a multipart CSV upload, strips PII, maps to Voyager transactions,
  * and returns an ImportResult summary. The CSV is processed entirely
- * server-side and never logged (CLAUDE.md §8.6).
+ * server-side and never logged.
  *
- * TODO(phase-1): wire Supabase auth + Drizzle upsert per the §4.4 template:
+ * TODO(phase-1): wire Supabase auth + Drizzle upsert:
  *   - verify session, scope to session.user.id
  *   - persist via onConflictDoNothing on (user_id, broker, external_id)
  *   - trigger async ISIN→ticker resolution (OpenFIGI)
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const result = await importTradeRepublicCsv(csvText, persist)
     return NextResponse.json(result)
   } catch {
-    // Never leak internal details or row data to the client (CLAUDE.md §4.4).
+    // Never leak internal details or row data to the client.
     return NextResponse.json({ error: 'Failed to process import' }, { status: 500 })
   }
 }

@@ -34,7 +34,6 @@ export interface WidgetDefinition<TConfig = unknown> {
 
 // ─── REGISTRY ────────────────────────────────────────────────────────────────
 // Add new widget definitions here. This is the ONLY place to register widgets.
-// See CLAUDE.md §3.5 for the "how to add a widget" checklist.
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- heterogeneous config types
    are validated per-widget via configSchema; the registry map is intentionally

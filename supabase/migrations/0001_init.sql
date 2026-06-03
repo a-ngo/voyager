@@ -1,4 +1,4 @@
--- Voyager — initial schema (CLAUDE.md §6)
+-- Voyager — initial schema
 -- Transaction-ledger model: store immutable transactions, reconstruct holdings on demand.
 -- RLS is enabled on every user-scoped table. No exceptions.
 
@@ -44,7 +44,7 @@ create table if not exists transactions (
   created_at         timestamptz not null default now()
 );
 
--- Idempotent re-import: unique per (user, broker, external_id) (CLAUDE.md §8.5)
+-- Idempotent re-import: unique per (user, broker, external_id)
 alter table transactions
   add constraint transactions_external_id_unique
   unique (user_id, broker, external_id);
@@ -110,7 +110,7 @@ create table if not exists dashboard_layouts (
 );
 
 -- ─── Row Level Security ──────────────────────────────────────────────────────
--- Every user-scoped table: users can only access their own rows (CLAUDE.md §6).
+-- Every user-scoped table: users can only access their own rows.
 alter table portfolios        enable row level security;
 alter table transactions      enable row level security;
 alter table alerts            enable row level security;

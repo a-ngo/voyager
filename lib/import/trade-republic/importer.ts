@@ -42,7 +42,7 @@ export interface PreparedImport {
 
 /**
  * Pure: parse → strip PII (allowlist) → validate → map TR types to Voyager types.
- * No DB, no fetch — fully unit-testable with CSV fixtures (CLAUDE.md §8.1, §10).
+ * No DB, no fetch — fully unit-testable with CSV fixtures.
  * Rows that fail validation or carry an unknown TR type are reported, not dropped.
  */
 export function prepareTradeRepublicImport(csvText: string): PreparedImport {
@@ -74,7 +74,7 @@ export function prepareTradeRepublicImport(csvText: string): PreparedImport {
       type,
       assetClass: mapAssetClass(tr.asset_class),
       isin: tr.symbol ?? null,
-      ticker: null, // resolved lazily via OpenFIGI after import (CLAUDE.md §8.4)
+      ticker: null, // resolved lazily via OpenFIGI after import
       quantity: parseNumber(tr.shares),
       price: parseNumber(tr.price),
       amount: parseNumber(tr.amount),
@@ -99,8 +99,8 @@ export type PersistTransaction = (tx: MappedTransaction) => Promise<'inserted' |
 
 /**
  * Orchestrates a full import. The `persist` callback owns the DB upsert with
- * `onConflictDoNothing` on (user_id, broker, external_id) for idempotency
- * (CLAUDE.md §8.5). Keeping persistence injected means this stays testable.
+ * `onConflictDoNothing` on (user_id, broker, external_id) for idempotency.
+ * Keeping persistence injected means this stays testable.
  */
 export async function importTradeRepublicCsv(
   csvText: string,

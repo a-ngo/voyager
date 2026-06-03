@@ -1,4 +1,4 @@
-/** Voyager's internal transaction type system (CLAUDE.md §6). */
+/** Voyager's internal transaction type system. */
 export type TransactionType =
   | 'buy'
   | 'sell'
@@ -41,7 +41,7 @@ export interface ImportError {
   reason: string
 }
 
-/** Returned to the client so the user sees a clear summary (CLAUDE.md §8.5). */
+/** Returned to the client so the user sees a clear summary. */
 export interface ImportResult {
   total: number
   imported: number
