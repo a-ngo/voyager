@@ -1,22 +1,27 @@
 import { NextResponse } from 'next/server'
-import { importTradeRepublicCsv, type PersistTransaction } from '@/lib/import/trade-republic/importer'
+import { importTradeRepublicCsv } from '@/lib/import/trade-republic/importer'
+import { createClient } from '@/lib/supabase/server'
+import { getOrCreateDefaultPortfolio, makePersist } from '@/lib/db/transactions'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 /**
  * POST /api/import/trade-republic
  * Accepts a multipart CSV upload, strips PII, maps to Voyager transactions,
- * and returns an ImportResult summary. The CSV is processed entirely
+ * and upserts them for the signed-in user. The CSV is processed entirely
  * server-side and never logged.
  *
- * TODO(phase-1): wire Supabase auth + Drizzle upsert:
- *   - verify session, scope to session.user.id
- *   - persist via onConflictDoNothing on (user_id, broker, external_id)
- *   - trigger async ISIN→ticker resolution (OpenFIGI)
- * Until then `persist` reports every prepared row as inserted so the import
- * flow is exercisable end-to-end without a database.
+ * TODO(phase-1): trigger async ISIN→ticker resolution (OpenFIGI) after import.
  */
 export async function POST(request: Request) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   let formData: FormData
   try {
     formData = await request.formData()
@@ -39,10 +44,9 @@ export async function POST(request: Request) {
 
   const csvText = await file.text()
 
-  // Skeleton persist: no DB yet. Real impl upserts with onConflictDoNothing.
-  const persist: PersistTransaction = async () => 'inserted'
-
   try {
+    const portfolioId = await getOrCreateDefaultPortfolio(user.id)
+    const persist = makePersist(user.id, portfolioId)
     const result = await importTradeRepublicCsv(csvText, persist)
     return NextResponse.json(result)
   } catch {

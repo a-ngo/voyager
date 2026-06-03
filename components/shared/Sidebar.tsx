@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Rocket } from 'lucide-react'
+import { Rocket, LogOut } from 'lucide-react'
 import { NAV_ITEMS, NAV_GROUP_LABELS, type NavItem } from './nav-config'
+import { signout } from '@/app/(auth)/actions'
 import { cn } from '@/lib/utils/cn'
 
 const GROUP_ORDER: NavItem['group'][] = ['core', 'analytics', 'tools', 'settings']
@@ -67,8 +68,16 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border px-4 py-3 text-[10px] text-faint">
-        To the moon and beyond.
+      <div className="border-t border-border px-2 py-2">
+        <form action={signout}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-muted transition-colors hover:bg-panel-elevated hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className="flex-1 truncate text-left">Sign out</span>
+          </button>
+        </form>
       </div>
     </aside>
   )
