@@ -1,8 +1,9 @@
 import 'server-only'
-import { inArray } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { getDb } from '@/lib/db'
 import { isinTickerMap, priceCache } from '@/lib/db/schema'
-import { resolveSymbol } from './resolve'
+import { currencyForSymbol, resolveSymbol } from './resolve'
+import { openFigiCandidates } from './openfigi'
 import { fetchStooqQuote } from './stooq'
 import { fetchEcbEurRates, toEur } from './fx'
 
@@ -17,86 +18,112 @@ export interface EurPrices {
   asOf: string | null
 }
 
+type Db = ReturnType<typeof getDb>
+interface Quote {
+  close: number
+  date: string
+  name: string | null
+}
+
+/** Cache-first price for a Stooq symbol: read `price_cache` within TTL, else fetch + upsert. */
+async function fetchQuoteCached(db: Db, symbol: string, currency: string): Promise<Quote | null> {
+  const [row] = await db
+    .select()
+    .from(priceCache)
+    .where(eq(priceCache.ticker, symbol))
+    .orderBy(desc(priceCache.date))
+    .limit(1)
+
+  if (row?.close != null && Date.now() - new Date(row.fetchedAt).getTime() < PRICE_TTL_MS) {
+    return { close: Number(row.close), date: row.date, name: null }
+  }
+
+  const q = await fetchStooqQuote(symbol)
+  if (!q) return null
+
+  await db
+    .insert(priceCache)
+    .values({ ticker: symbol, date: q.date, close: String(q.close), currency, source: 'stooq' })
+    .onConflictDoUpdate({
+      target: [priceCache.ticker, priceCache.date],
+      set: { close: String(q.close), currency, source: 'stooq', fetchedAt: new Date().toISOString() },
+    })
+
+  return { close: q.close, date: q.date, name: q.name }
+}
+
+interface Resolution {
+  symbol: string
+  currency: string
+  quote: Quote
+}
+
+/** Resolve an ISIN to a priced symbol: curated map → cached mapping → OpenFIGI. */
+async function resolve(db: Db, isin: string): Promise<Resolution | null> {
+  // 1. Curated map (highest quality).
+  const curated = resolveSymbol(isin)
+  if (curated) {
+    const quote = await fetchQuoteCached(db, curated.stooq, curated.currency)
+    return quote ? { symbol: curated.stooq, currency: curated.currency, quote } : null
+  }
+
+  // 2. Previously resolved mapping in the DB.
+  const [mapped] = await db
+    .select()
+    .from(isinTickerMap)
+    .where(eq(isinTickerMap.isin, isin))
+    .limit(1)
+  if (mapped?.ticker) {
+    const currency = currencyForSymbol(mapped.ticker) ?? 'EUR'
+    const quote = await fetchQuoteCached(db, mapped.ticker, currency)
+    if (quote) return { symbol: mapped.ticker, currency, quote }
+  }
+
+  // 3. OpenFIGI — try candidates until one prices, then persist the winner.
+  for (const candidate of await openFigiCandidates(isin)) {
+    const quote = await fetchQuoteCached(db, candidate.stooq, candidate.currency)
+    if (!quote) continue
+    const name = quote.name ?? candidate.name
+    await db
+      .insert(isinTickerMap)
+      .values({ isin, ticker: candidate.stooq, name, source: 'openfigi' })
+      .onConflictDoUpdate({
+        target: isinTickerMap.isin,
+        set: { ticker: candidate.stooq, name, source: 'openfigi', resolvedAt: new Date().toISOString() },
+      })
+    return { symbol: candidate.stooq, currency: candidate.currency, quote }
+  }
+
+  return null
+}
+
 /**
- * Resolves ISINs to symbols, fetches their prices (cache-first, then Stooq),
- * converts to EUR via ECB rates, and returns a price-per-ISIN map. Network or
- * resolution failures fall through to `unresolved` rather than throwing — the
- * caller renders those holdings as unpriced.
+ * EUR prices for a set of ISINs. Resolution and pricing fail soft — an ISIN that
+ * can't be resolved or priced lands in `unresolved` instead of throwing.
  */
 export async function getEurPrices(items: { isin: string | null }[]): Promise<EurPrices> {
   const db = getDb()
-  const unresolved: string[] = []
-  const resolved = new Map<string, { symbol: string; currency: string }>()
-
-  for (const { isin } of items) {
-    if (!isin) continue
-    const r = resolveSymbol(isin)
-    if (r) resolved.set(isin, { symbol: r.stooq, currency: r.currency })
-    else unresolved.push(isin)
-  }
-  if (resolved.size === 0) return { prices: {}, unresolved, asOf: null }
-
-  const symbols = [...new Set([...resolved.values()].map((r) => r.symbol))]
-  const symbolCurrency = new Map([...resolved.values()].map((r) => [r.symbol, r.currency]))
-
-  // Cache-first read.
-  const now = Date.now()
-  const quotes = new Map<string, { close: number; date: string }>()
-  const cached = await db.select().from(priceCache).where(inArray(priceCache.ticker, symbols))
-  for (const row of cached) {
-    if (row.close != null && now - new Date(row.fetchedAt).getTime() < PRICE_TTL_MS) {
-      quotes.set(row.ticker, { close: Number(row.close), date: row.date })
-    }
-  }
-
-  // Fetch any misses from Stooq and upsert into the cache. Also persist the
-  // instrument name into isin_ticker_map so the UI can show it later.
-  for (const [isin, { symbol }] of resolved) {
-    if (quotes.has(symbol)) continue
-    const q = await fetchStooqQuote(symbol)
-    if (!q) continue
-    quotes.set(symbol, { close: q.close, date: q.date })
-    await db
-      .insert(priceCache)
-      .values({
-        ticker: symbol,
-        date: q.date,
-        close: String(q.close),
-        currency: symbolCurrency.get(symbol) ?? 'EUR',
-        source: 'stooq',
-      })
-      .onConflictDoUpdate({
-        target: [priceCache.ticker, priceCache.date],
-        set: { close: String(q.close), source: 'stooq', fetchedAt: new Date().toISOString() },
-      })
-    if (q.name) {
-      await db
-        .insert(isinTickerMap)
-        .values({ isin, ticker: symbol, name: q.name, source: 'stooq' })
-        .onConflictDoUpdate({
-          target: isinTickerMap.isin,
-          set: { ticker: symbol, name: q.name, source: 'stooq', resolvedAt: new Date().toISOString() },
-        })
-    }
-  }
+  const isins = [...new Set(items.map((i) => i.isin).filter((i): i is string => !!i))]
+  if (isins.length === 0) return { prices: {}, unresolved: [], asOf: null }
 
   const rates = await fetchEcbEurRates()
   const prices: Record<string, number> = {}
+  const unresolved: string[] = []
   let asOf: string | null = null
 
-  for (const [isin, { symbol, currency }] of resolved) {
-    const q = quotes.get(symbol)
-    if (!q) {
+  for (const isin of isins) {
+    const r = await resolve(db, isin)
+    if (!r) {
       unresolved.push(isin)
       continue
     }
-    const eur = toEur(q.close, currency, rates)
+    const eur = toEur(r.quote.close, r.currency, rates)
     if (eur == null) {
       unresolved.push(isin)
       continue
     }
     prices[isin] = eur
-    asOf = asOf ?? q.date
+    asOf = asOf ?? r.quote.date
   }
 
   return { prices, unresolved, asOf }

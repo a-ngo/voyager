@@ -40,3 +40,26 @@ export function displayName(
   if (isin && names?.[isin]) return names[isin]
   return ticker ?? isin ?? '—'
 }
+
+/** Quote currency implied by a Stooq symbol's country suffix (e.g. `aapl.us` → USD). */
+const SUFFIX_CURRENCY: Record<string, string> = {
+  us: 'USD',
+  uk: 'GBP',
+  de: 'EUR',
+  fr: 'EUR',
+  nl: 'EUR',
+  es: 'EUR',
+  it: 'EUR',
+  pt: 'EUR',
+  be: 'EUR',
+  at: 'EUR',
+  ie: 'EUR',
+  fi: 'EUR',
+  ch: 'CHF',
+}
+
+export function currencyForSymbol(symbol: string): string | null {
+  const dot = symbol.lastIndexOf('.')
+  if (dot < 0) return null
+  return SUFFIX_CURRENCY[symbol.slice(dot + 1).toLowerCase()] ?? null
+}
