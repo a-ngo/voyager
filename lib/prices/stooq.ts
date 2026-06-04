@@ -27,6 +27,21 @@ export function parseStooqCsv(text: string, symbol: string): StooqQuote | null {
   return { symbol, close: value, date, name }
 }
 
+/** Parse Stooq history CSV: Date,Open,High,Low,Close,Volume → ascending price points. */
+export function parseStooqHistoryCsv(text: string): Array<{ date: string; close: number }> {
+  const out: Array<{ date: string; close: number }> = []
+  const lines = text.trim().split('\n')
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i]?.split(',')
+    const date = cols?.[0]
+    const close = cols?.[4]
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !close) continue
+    const value = Number(close)
+    if (Number.isFinite(value)) out.push({ date, close: value })
+  }
+  return out
+}
+
 export async function fetchStooqQuote(symbol: string): Promise<StooqQuote | null> {
   const url = `https://stooq.com/q/l/?s=${encodeURIComponent(symbol)}&f=sd2t2ohlcvn&h&e=csv`
   try {
