@@ -11,11 +11,11 @@ export interface AllocationSlice {
 }
 
 export const MOCK_ALLOCATION: AllocationSlice[] = [
-  { label: 'Equity ETF', value: 58, color: '#61afef' },
-  { label: 'US Stocks', value: 22, color: '#50fa7b' },
-  { label: 'Crypto', value: 9, color: '#c678dd' },
-  { label: 'Bonds', value: 7, color: '#f0ad4e' },
-  { label: 'Cash', value: 4, color: '#828997' },
+  { label: 'Equity ETF', value: 58, color: '#6f94a6' },
+  { label: 'US Stocks', value: 22, color: '#c2613f' },
+  { label: 'Crypto', value: 9, color: '#9479b0' },
+  { label: 'Bonds', value: 7, color: '#d2a052' },
+  { label: 'Cash', value: 4, color: '#a79e8e' },
 ]
 
 export interface PerformancePoint {
@@ -49,11 +49,11 @@ export interface AllocationTarget {
 }
 
 export const MOCK_ALLOCATION_TARGET: AllocationTarget[] = [
-  { label: 'Equity ETF', current: 58, target: 60, color: '#61afef' },
-  { label: 'US Stocks', current: 22, target: 15, color: '#50fa7b' },
-  { label: 'Crypto', current: 9, target: 5, color: '#c678dd' },
-  { label: 'Bonds', current: 7, target: 15, color: '#f0ad4e' },
-  { label: 'Cash', current: 4, target: 5, color: '#828997' },
+  { label: 'Equity ETF', current: 58, target: 60, color: '#6f94a6' },
+  { label: 'US Stocks', current: 22, target: 15, color: '#c2613f' },
+  { label: 'Crypto', current: 9, target: 5, color: '#9479b0' },
+  { label: 'Bonds', current: 7, target: 15, color: '#d2a052' },
+  { label: 'Cash', current: 4, target: 5, color: '#a79e8e' },
 ]
 
 export const MOCK_NET_WORTH = {

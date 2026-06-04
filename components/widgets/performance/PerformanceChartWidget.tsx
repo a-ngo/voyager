@@ -34,19 +34,20 @@ export default function PerformanceChartWidget({ config }: WidgetProps<Config>) 
       <ComposedChart data={MOCK_PERFORMANCE} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <defs>
           <linearGradient id="portfolioFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#9cdef2" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="#9cdef2" stopOpacity={0} />
+            <stop offset="0%" stopColor="#c2613f" stopOpacity={0.3} />
+            <stop offset="100%" stopColor="#c2613f" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2f3540" vertical={false} />
-        <XAxis dataKey="date" tick={{ fill: '#828997', fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: '#828997', fontSize: 11 }} axisLine={false} tickLine={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(125,120,110,0.25)" vertical={false} />
+        <XAxis dataKey="date" tick={{ fill: '#9d968a', fontSize: 11 }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fill: '#9d968a', fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip
           contentStyle={{
-            background: '#21252b',
-            border: '1px solid #2f3540',
-            borderRadius: 6,
+            background: 'var(--color-panel)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
             fontSize: 12,
+            color: 'var(--color-foreground)',
           }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
@@ -54,7 +55,7 @@ export default function PerformanceChartWidget({ config }: WidgetProps<Config>) 
           type="monotone"
           dataKey="portfolio"
           name="Portfolio"
-          stroke="#9cdef2"
+          stroke="#c2613f"
           strokeWidth={2}
           fill="url(#portfolioFill)"
         />
@@ -63,7 +64,7 @@ export default function PerformanceChartWidget({ config }: WidgetProps<Config>) 
             type="monotone"
             dataKey="benchmark"
             name={benchmarkLabel}
-            stroke="#e06c75"
+            stroke="#6f94a6"
             strokeWidth={1.5}
             strokeDasharray="4 3"
             dot={false}

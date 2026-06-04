@@ -33,13 +33,14 @@ export function toLedger(rows: TransactionRow[]): LedgerTransaction[] {
   }))
 }
 
+// Warm, muted categorical palette to match the cream/terracotta theme.
 const BUCKET_COLOR: Record<string, string> = {
-  stock: '#50fa7b',
-  etf: '#61afef',
-  bond: '#f0ad4e',
-  crypto: '#c678dd',
-  cash: '#828997',
-  other: '#56b6c2',
+  stock: '#c2613f',
+  etf: '#6f94a6',
+  bond: '#d2a052',
+  crypto: '#9479b0',
+  cash: '#a79e8e',
+  other: '#7e9e78',
 }
 
 export interface OverviewSlice {
@@ -85,7 +86,7 @@ export function buildAllocation(valued: ValuedPortfolio): OverviewSlice[] {
     label: s.label,
     value: s.value,
     weight: total > 0 ? (s.value / total) * 100 : 0,
-    color: BUCKET_COLOR[s.bucket] ?? '#56b6c2',
+    color: BUCKET_COLOR[s.bucket] ?? '#7e9e78',
   }))
 }
 

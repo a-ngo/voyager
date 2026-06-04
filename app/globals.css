@@ -1,35 +1,35 @@
 @import 'tailwindcss';
 
 /*
- * Voyager design tokens.
- * Palette adapted from the One Dark / Atom aesthetic (cf. odysseus):
- * deep slate background, cyan brand accent, warm red primary, green for gains.
+ * Voyager design tokens:
+ * cream/ivory background, terracotta accent, editorial serif headings.
  */
 @theme {
-  --color-background: #282c34;
-  --color-panel: #21252b;
-  --color-panel-elevated: #2c313a;
+  --color-background: #f5f4ee;
+  --color-panel: #fbfaf8;
+  --color-panel-elevated: #efede4;
 
-  --color-foreground: #c8d3da;
-  --color-muted: #828997;
-  --color-faint: #5c6370;
+  --color-foreground: #2a2622;
+  --color-muted: #6b6457;
+  --color-faint: #9d968a;
 
-  --color-border: #2f3540;
-  --color-border-accent: #355a66;
+  --color-border: #e6e2d7;
+  --color-border-accent: #dac3b4;
 
-  --color-brand: #9cdef2;
-  --color-primary: #e06c75;
-  --color-primary-foreground: #1b1d23;
+  --color-brand: #c2613f;
+  --color-primary: #c2613f;
+  --color-primary-foreground: #fdfbf7;
 
-  --color-positive: #50fa7b;
-  --color-negative: #e06c75;
-  --color-warning: #f0ad4e;
-  --color-info: #61afef;
-  --color-purple: #c678dd;
+  --color-positive: #4e7b4f;
+  --color-negative: #c13b30;
+  --color-warning: #c98a3c;
+  --color-info: #5e7e9c;
+  --color-purple: #8a72b0;
 
-  --font-mono: var(--font-fira-code), ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, 'Times New Roman', serif;
 
-  --radius-card: 6px;
+  --radius-card: 8px;
   --radius-button: 8px;
 }
 
@@ -38,16 +38,45 @@
 }
 
 html {
+  color-scheme: light;
+}
+
+html.dark {
   color-scheme: dark;
+}
+
+/* Dark theme — warm charcoal background, brighter terracotta accent. */
+html.dark {
+  --color-background: #262624;
+  --color-panel: #2f2e2b;
+  --color-panel-elevated: #3a3834;
+
+  --color-foreground: #ece9e1;
+  --color-muted: #a8a296;
+  --color-faint: #6f6b64;
+
+  --color-border: #3c3a35;
+  --color-border-accent: #5b4a3f;
+
+  --color-brand: #d2794f;
+  --color-primary: #d2794f;
+  --color-primary-foreground: #211f1c;
+
+  --color-positive: #6aa06a;
+  --color-negative: #d4665a;
+  --color-warning: #d6a25a;
+  --color-info: #7b9cb8;
+  --color-purple: #a78fce;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* react-grid-layout chrome */
@@ -57,7 +86,7 @@ body {
   border-radius: var(--radius-card);
 }
 
-.react-grid-item > .react-resizable-handle::after {
+.react-grid-item>.react-resizable-handle::after {
   border-right-color: var(--color-faint);
   border-bottom-color: var(--color-faint);
 }
@@ -66,10 +95,12 @@ body {
   width: 10px;
   height: 10px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-accent);
   border-radius: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }

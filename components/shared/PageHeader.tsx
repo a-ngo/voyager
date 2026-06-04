@@ -10,7 +10,7 @@ export function PageHeader({
   return (
     <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
       <div>
-        <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
+        <h1 className="font-serif text-xl font-medium tracking-tight text-foreground">{title}</h1>
         {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

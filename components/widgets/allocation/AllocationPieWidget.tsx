@@ -29,10 +29,11 @@ export default function AllocationPieWidget(_props: WidgetProps<Config>) {
             </Pie>
             <Tooltip
               contentStyle={{
-                background: '#21252b',
-                border: '1px solid #2f3540',
-                borderRadius: 6,
+                background: 'var(--color-panel)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
                 fontSize: 12,
+                color: 'var(--color-foreground)',
               }}
               formatter={(value: number, name: string) => [`${value}%`, name]}
             />

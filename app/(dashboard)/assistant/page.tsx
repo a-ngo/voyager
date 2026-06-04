@@ -6,7 +6,7 @@ export default function AssistantPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="AI Assistant"
-        description="Conversational portfolio intelligence, powered by Claude."
+        description="Conversational portfolio intelligence."
       />
       <Card>
         <CardHeader>
