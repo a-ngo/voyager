@@ -54,6 +54,31 @@ export interface ValuedOverview {
   names: Record<string, string>
 }
 
+/** Scalar KPIs + allocation for the dashboard — the heavy ledger/names are dropped. */
+export type DashboardSummary = Omit<ValuedOverview, 'transactions' | 'names' | 'positions'>
+
+export async function getDashboardSummary(userId: string): Promise<DashboardSummary> {
+  const o = await getValuedOverview(userId)
+  return {
+    hasData: o.hasData,
+    currency: o.currency,
+    investedAtCost: o.investedAtCost,
+    cash: o.cash,
+    netContributions: o.netContributions,
+    income: o.income,
+    realizedPnl: o.realizedPnl,
+    fees: o.fees,
+    marketValue: o.marketValue,
+    netWorth: o.netWorth,
+    unrealizedPnl: o.unrealizedPnl,
+    totalReturnAbs: o.totalReturnAbs,
+    totalReturnPct: o.totalReturnPct,
+    unpricedCount: o.unpricedCount,
+    asOf: o.asOf,
+    allocation: o.allocation,
+  }
+}
+
 export async function getValuedOverview(userId: string): Promise<ValuedOverview> {
   const transactions = await getTransactionsForUser(userId)
   const summary = reconstructPortfolio(toLedger(transactions))

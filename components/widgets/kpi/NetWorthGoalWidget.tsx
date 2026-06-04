@@ -2,19 +2,28 @@
 
 import { Target } from 'lucide-react'
 import type { WidgetProps } from '../registry'
-import { MOCK_NET_WORTH } from '@/lib/portfolio/mock'
+import { WidgetMessage } from '../WidgetState'
+import { usePortfolioSummary } from '@/hooks/usePortfolioSummary'
 
 interface Config {
   goal: number
 }
 
+const DEFAULT_GOAL = 250_000
+
 /** Total net worth vs. a savings goal, with progress toward the target. */
 export default function NetWorthGoalWidget({ config }: WidgetProps<Config>) {
-  const { current, currency, monthlyContribution } = MOCK_NET_WORTH
-  const goal = config.goal > 0 ? config.goal : MOCK_NET_WORTH.goal
-  const pct = Math.min(100, (current / goal) * 100)
+  const { data, isLoading, isError } = usePortfolioSummary()
+
+  if (isLoading) return <WidgetMessage text="Loading…" />
+  if (isError || !data) return <WidgetMessage text="Couldn't load data" />
+  if (!data.hasData) return <WidgetMessage text="No data yet — import transactions" />
+
+  const current = data.netWorth
+  const currency = data.currency
+  const goal = config.goal > 0 ? config.goal : DEFAULT_GOAL
+  const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0
   const remaining = Math.max(0, goal - current)
-  const monthsToGoal = monthlyContribution > 0 ? Math.ceil(remaining / monthlyContribution) : null
 
   const compact = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -51,10 +60,7 @@ export default function NetWorthGoalWidget({ config }: WidgetProps<Config>) {
 
       <div className="flex items-center justify-between text-[11px] text-muted">
         <span className="text-brand">{pct.toFixed(0)}% there</span>
-        <span>
-          {full.format(remaining)} to go
-          {monthsToGoal !== null && ` · ~${monthsToGoal} mo`}
-        </span>
+        <span>{full.format(remaining)} to go</span>
       </div>
     </div>
   )

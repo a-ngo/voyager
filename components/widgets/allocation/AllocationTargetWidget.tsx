@@ -1,6 +1,7 @@
 'use client'
 
 import type { WidgetProps } from '../registry'
+import { SampleBadge } from '../WidgetState'
 import { MOCK_ALLOCATION_TARGET } from '@/lib/portfolio/mock'
 
 interface Config {
@@ -15,7 +16,8 @@ export default function AllocationTargetWidget({ config }: WidgetProps<Config>) 
   const max = Math.max(...MOCK_ALLOCATION_TARGET.flatMap((a) => [a.current, a.target]))
 
   return (
-    <div className="flex h-full flex-col justify-center gap-2.5">
+    <div className="relative flex h-full flex-col justify-center gap-2.5">
+      <SampleBadge />
       {MOCK_ALLOCATION_TARGET.map((asset) => {
         const drift = asset.current - asset.target
         const breached = Math.abs(drift) > config.threshold

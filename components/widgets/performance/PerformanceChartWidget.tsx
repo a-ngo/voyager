@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts'
 import type { WidgetProps } from '../registry'
+import { SampleBadge } from '../WidgetState'
 import { MOCK_PERFORMANCE } from '@/lib/portfolio/mock'
 
 interface Config {
@@ -30,7 +31,9 @@ export default function PerformanceChartWidget({ config }: WidgetProps<Config>) 
     ? (BENCHMARK_LABELS[config.benchmarkTicker] ?? config.benchmarkTicker)
     : 'Benchmark'
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <div className="relative h-full">
+      <SampleBadge />
+      <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={MOCK_PERFORMANCE} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <defs>
           <linearGradient id="portfolioFill" x1="0" y1="0" x2="0" y2="1">
@@ -71,6 +74,7 @@ export default function PerformanceChartWidget({ config }: WidgetProps<Config>) 
           />
         )}
       </ComposedChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+    </div>
   )
 }

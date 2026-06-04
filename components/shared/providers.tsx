@@ -1,11 +1,18 @@
 'use client'
 
-import * as React from 'react'
+import { useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-/**
- * App-wide client providers. TanStack Query is wired here once its provider
- * is added (kept minimal in the skeleton to avoid an unused dependency).
- */
+/** App-wide client providers. TanStack Query for client-side data fetching. */
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false, retry: 1 },
+        },
+      }),
+  )
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
