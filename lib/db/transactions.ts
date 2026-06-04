@@ -10,6 +10,27 @@ function num(value: number | null): string | null {
   return value === null ? null : String(value)
 }
 
+/** The user's default-portfolio target allocations (bucket → percent), or {}. */
+export async function getTargetAllocations(userId: string): Promise<Record<string, number>> {
+  const db = getDb()
+  const [row] = await db
+    .select({ targets: portfolios.targetAllocations })
+    .from(portfolios)
+    .where(eq(portfolios.userId, userId))
+    .limit(1)
+  return (row?.targets as Record<string, number> | null) ?? {}
+}
+
+/** Save target allocations on the user's default portfolio (created if needed). */
+export async function setTargetAllocations(
+  userId: string,
+  targets: Record<string, number>,
+): Promise<void> {
+  const db = getDb()
+  const portfolioId = await getOrCreateDefaultPortfolio(userId)
+  await db.update(portfolios).set({ targetAllocations: targets }).where(eq(portfolios.id, portfolioId))
+}
+
 /** A transaction row as read back for display + portfolio reconstruction. */
 export interface TransactionRow {
   id: string

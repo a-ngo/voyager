@@ -7,6 +7,7 @@ import {
   Calculator,
   Upload,
   Receipt,
+  Settings,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -38,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/import', label: 'Import', icon: Upload, group: 'tools' },
   { href: '/assistant', label: 'AI Assistant', icon: MessageSquare, group: 'tools', badge: 'beta' },
   { href: '/tax', label: 'Tax Helper', icon: Calculator, group: 'tools', badge: 'new', hidden: true },
+  { href: '/settings', label: 'Settings', icon: Settings, group: 'settings' },
 ]
 
 export const NAV_GROUP_LABELS: Record<NavItem['group'], string> = {

@@ -7,6 +7,7 @@ import {
   type LedgerTransaction,
   type ValuedPortfolio,
 } from '@/lib/finance/holdings'
+import { BUCKET_COLOR, type Bucket } from './buckets'
 
 /**
  * Portfolio overview at cost basis — the read model the Portfolio page renders.
@@ -33,17 +34,8 @@ export function toLedger(rows: TransactionRow[]): LedgerTransaction[] {
   }))
 }
 
-// Warm, muted categorical palette to match the cream/terracotta theme.
-const BUCKET_COLOR: Record<string, string> = {
-  stock: '#c2613f',
-  etf: '#6f94a6',
-  bond: '#d2a052',
-  crypto: '#9479b0',
-  cash: '#a79e8e',
-  other: '#7e9e78',
-}
-
 export interface OverviewSlice {
+  bucket: Bucket
   label: string
   value: number
   weight: number
@@ -83,10 +75,11 @@ export function buildAllocation(valued: ValuedPortfolio): OverviewSlice[] {
   const positive = allocationByAssetClass(valued).filter((s) => s.value > 0.005)
   const total = positive.reduce((sum, s) => sum + s.value, 0)
   return positive.map((s) => ({
+    bucket: s.bucket,
     label: s.label,
     value: s.value,
     weight: total > 0 ? (s.value / total) * 100 : 0,
-    color: BUCKET_COLOR[s.bucket] ?? '#7e9e78',
+    color: BUCKET_COLOR[s.bucket] ?? BUCKET_COLOR.other,
   }))
 }
 

@@ -1,6 +1,10 @@
 import 'server-only'
 import type { AssetClass } from '@/lib/import/types'
-import { getTransactionsForUser, type TransactionRow } from '@/lib/db/transactions'
+import {
+  getTargetAllocations,
+  getTransactionsForUser,
+  type TransactionRow,
+} from '@/lib/db/transactions'
 import { reconstructPortfolio, totalReturn, valuePortfolio } from '@/lib/finance/holdings'
 import { getEurPrices } from '@/lib/prices/quotes'
 import { getInstrumentNames } from '@/lib/prices/names'
@@ -48,6 +52,8 @@ export interface ValuedOverview {
   unpricedCount: number
   asOf: string | null
   allocation: OverviewSlice[]
+  /** Target allocation weights (bucket → percent). */
+  targets: Record<string, number>
   positions: ValuedOverviewPosition[]
   transactions: TransactionRow[]
   /** ISIN → resolved instrument name, for the transaction ledger. */
@@ -76,11 +82,13 @@ export async function getDashboardSummary(userId: string): Promise<DashboardSumm
     unpricedCount: o.unpricedCount,
     asOf: o.asOf,
     allocation: o.allocation,
+    targets: o.targets,
   }
 }
 
 export async function getValuedOverview(userId: string): Promise<ValuedOverview> {
   const transactions = await getTransactionsForUser(userId)
+  const targets = await getTargetAllocations(userId)
   const summary = reconstructPortfolio(toLedger(transactions))
 
   const { prices, unresolved, asOf } = await getEurPrices(
@@ -130,6 +138,7 @@ export async function getValuedOverview(userId: string): Promise<ValuedOverview>
     unpricedCount: unresolved.length,
     asOf,
     allocation: buildAllocation(valued),
+    targets,
     positions,
     transactions,
     names,
