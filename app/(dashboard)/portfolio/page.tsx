@@ -1,14 +1,15 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Upload } from 'lucide-react'
+import { Upload, AlertTriangle } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AllocationDonut } from '@/components/charts/AllocationDonut'
+import { TransactionsTable } from '@/components/portfolio/TransactionsTable'
+import { InstrumentLabel } from '@/components/portfolio/InstrumentLabel'
 import { createClient } from '@/lib/supabase/server'
-import { getTransactionsForUser } from '@/lib/db/transactions'
-import { buildOverview, toLedger } from '@/lib/portfolio/overview'
-import { formatDate, formatMoney, formatQuantity } from '@/lib/utils/format'
+import { getValuedOverview } from '@/lib/portfolio/valued-overview'
+import { formatMoney, formatQuantity } from '@/lib/utils/format'
 
 export default async function PortfolioPage() {
   const supabase = await createClient()
@@ -17,10 +18,9 @@ export default async function PortfolioPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const rows = await getTransactionsForUser(user.id)
-  const overview = buildOverview(toLedger(rows))
+  const o = await getValuedOverview(user.id)
 
-  if (!overview.hasData) {
+  if (!o.hasData) {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Portfolio" description="Holdings reconstructed from your transaction ledger." />
@@ -42,32 +42,65 @@ export default async function PortfolioPage() {
     )
   }
 
-  const c = overview.currency
-  const recent = [...rows].reverse().slice(0, 25)
+  const c = o.currency
+  const recent = [...o.transactions].reverse().slice(0, 10)
+  const returnTone = o.totalReturnAbs >= 0 ? 'text-positive' : 'text-negative'
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Portfolio" description="Holdings reconstructed from your transaction ledger." />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Invested (cost)" value={formatMoney(overview.investedAtCost, c)} />
-        <Stat label="Cash" value={formatMoney(overview.cash, c)} />
-        <Stat label="Net contributions" value={formatMoney(overview.netContributions, c)} />
-        <Stat label="Income received" value={formatMoney(overview.income, c)} tone="positive" />
+      <Card>
+        <CardContent className="flex flex-wrap items-end justify-between gap-3 py-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-faint">Net worth</div>
+            <div className="text-3xl font-semibold tabular-nums text-foreground">
+              {formatMoney(o.netWorth, c)}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-widest text-faint">Total return</div>
+            <div className={`text-xl font-semibold tabular-nums ${returnTone}`}>
+              {o.totalReturnAbs >= 0 ? '+' : ''}
+              {formatMoney(o.totalReturnAbs, c)} ({o.totalReturnPct.toFixed(1)}%)
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Market value" value={formatMoney(o.marketValue, c)} />
+        <Stat
+          label="Unrealized P/L"
+          value={formatMoney(o.unrealizedPnl, c)}
+          tone={o.unrealizedPnl >= 0 ? 'positive' : 'negative'}
+        />
+        <Stat label="Cash" value={formatMoney(o.cash, c)} />
+        <Stat label="Invested (cost)" value={formatMoney(o.investedAtCost, c)} tone="muted" />
+        <Stat label="Net contributions" value={formatMoney(o.netContributions, c)} tone="muted" />
+        <Stat label="Income received" value={formatMoney(o.income, c)} tone="positive" />
         <Stat
           label="Realized P/L"
-          value={formatMoney(overview.realizedPnl, c)}
-          tone={overview.realizedPnl >= 0 ? 'positive' : 'negative'}
+          value={formatMoney(o.realizedPnl, c)}
+          tone={o.realizedPnl >= 0 ? 'positive' : 'negative'}
         />
-        <Stat label="Fees paid" value={formatMoney(overview.fees, c)} tone="muted" />
+        <Stat label="Fees paid" value={formatMoney(o.fees, c)} tone="muted" />
       </div>
+
+      {o.unpricedCount > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-muted">
+          <AlertTriangle className="h-3.5 w-3.5 text-negative" />
+          {o.unpricedCount} holding{o.unpricedCount > 1 ? 's' : ''} could not be priced and are
+          excluded from market value.
+        </p>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Allocation (by cost basis)</CardTitle>
+          <CardTitle>Allocation (by market value)</CardTitle>
         </CardHeader>
         <CardContent>
-          <AllocationDonut slices={overview.allocation} currency={c} />
+          <AllocationDonut slices={o.allocation} currency={c} />
         </CardContent>
       </Card>
 
@@ -80,29 +113,45 @@ export default async function PortfolioPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-[10px] uppercase tracking-widest text-faint">
-                  <th className="py-2 text-left font-medium">Instrument</th>
-                  <th className="py-2 text-left font-medium">Class</th>
+                  <th className="py-2 text-left font-medium">ISIN</th>
                   <th className="py-2 text-right font-medium">Quantity</th>
                   <th className="py-2 text-right font-medium">Avg cost</th>
-                  <th className="py-2 text-right font-medium">Cost basis</th>
+                  <th className="py-2 text-right font-medium">Price</th>
+                  <th className="py-2 text-right font-medium">Market value</th>
+                  <th className="py-2 text-right font-medium">Unrealized</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {overview.positions.map((p) => (
-                  <tr key={p.key}>
-                    <td className="py-2 text-foreground">{p.label}</td>
-                    <td className="py-2 capitalize text-muted">{p.assetClass ?? '—'}</td>
-                    <td className="py-2 text-right tabular-nums text-muted">
-                      {formatQuantity(p.quantity)}
-                    </td>
-                    <td className="py-2 text-right tabular-nums text-muted">
-                      {formatMoney(p.averageCost, p.currency)}
-                    </td>
-                    <td className="py-2 text-right tabular-nums text-foreground">
-                      {formatMoney(p.costBasis, p.currency)}
-                    </td>
-                  </tr>
-                ))}
+                {o.positions.map((p) => {
+                  const pnlTone =
+                    p.unrealizedPnl == null
+                      ? 'text-faint'
+                      : p.unrealizedPnl >= 0
+                        ? 'text-positive'
+                        : 'text-negative'
+                  return (
+                    <tr key={p.key}>
+                      <td className="py-2">
+                        <InstrumentLabel isin={p.isin} ticker={p.ticker} />
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-muted">
+                        {formatQuantity(p.quantity)}
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-muted">
+                        {formatMoney(p.averageCost, c)}
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-muted">
+                        {p.price == null ? 'no price' : formatMoney(p.price, c)}
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-foreground">
+                        {p.marketValue == null ? '—' : formatMoney(p.marketValue, c)}
+                      </td>
+                      <td className={`py-2 text-right tabular-nums ${pnlTone}`}>
+                        {p.unrealizedPnl == null ? '—' : formatMoney(p.unrealizedPnl, c)}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -110,47 +159,20 @@ export default async function PortfolioPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Transactions ({rows.length})</CardTitle>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>Recent transactions</CardTitle>
+          <Link href="/transactions" className="text-xs text-brand hover:underline">
+            See all {o.transactions.length} →
+          </Link>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-[10px] uppercase tracking-widest text-faint">
-                  <th className="py-2 text-left font-medium">Date</th>
-                  <th className="py-2 text-left font-medium">Type</th>
-                  <th className="py-2 text-left font-medium">Instrument</th>
-                  <th className="py-2 text-right font-medium">Quantity</th>
-                  <th className="py-2 text-right font-medium">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {recent.map((t) => (
-                  <tr key={t.id}>
-                    <td className="py-2 text-muted">{formatDate(t.datetime)}</td>
-                    <td className="py-2 capitalize text-foreground">{t.type}</td>
-                    <td className="py-2 text-muted">{t.ticker ?? t.isin ?? '—'}</td>
-                    <td className="py-2 text-right tabular-nums text-muted">
-                      {t.quantity ? formatQuantity(Number(t.quantity)) : '—'}
-                    </td>
-                    <td className="py-2 text-right tabular-nums text-muted">
-                      {t.amount ? formatMoney(Number(t.amount), t.currency) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {rows.length > recent.length && (
-            <p className="mt-3 text-xs text-faint">Showing the {recent.length} most recent.</p>
-          )}
+          <TransactionsTable rows={recent} />
         </CardContent>
       </Card>
 
       <p className="text-xs text-faint">
-        Values shown at cost basis. Market value, unrealized gains, and total return arrive with the
-        price layer. Not financial advice.
+        {o.asOf ? `Prices as of ${o.asOf} · ` : ''}source Stooq · FX ECB. Cost basis uses the
+        average-cost method. Not financial advice.
       </p>
     </div>
   )

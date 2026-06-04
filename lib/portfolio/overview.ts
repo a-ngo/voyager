@@ -5,6 +5,7 @@ import {
   reconstructPortfolio,
   valueAtCost,
   type LedgerTransaction,
+  type ValuedPortfolio,
 } from '@/lib/finance/holdings'
 
 /**
@@ -73,19 +74,24 @@ export interface PortfolioOverview {
   positions: OverviewPosition[]
 }
 
-export function buildOverview(ledger: LedgerTransaction[]): PortfolioOverview {
-  const summary = reconstructPortfolio(ledger)
-  const valued = valueAtCost(summary)
-
-  // Composition of positive holdings + cash, renormalized so weights sum to 100.
+/**
+ * Allocation slices for a valued portfolio: positive holdings + cash only,
+ * renormalized so weights sum to 100. Works for cost-basis or market valuation.
+ */
+export function buildAllocation(valued: ValuedPortfolio): OverviewSlice[] {
   const positive = allocationByAssetClass(valued).filter((s) => s.value > 0.005)
   const total = positive.reduce((sum, s) => sum + s.value, 0)
-  const allocation: OverviewSlice[] = positive.map((s) => ({
+  return positive.map((s) => ({
     label: s.label,
     value: s.value,
     weight: total > 0 ? (s.value / total) * 100 : 0,
     color: BUCKET_COLOR[s.bucket] ?? '#56b6c2',
   }))
+}
+
+export function buildOverview(ledger: LedgerTransaction[]): PortfolioOverview {
+  const summary = reconstructPortfolio(ledger)
+  const allocation = buildAllocation(valueAtCost(summary))
 
   const positions: OverviewPosition[] = [...summary.positions]
     .sort((a, b) => b.costBasis - a.costBasis)

@@ -6,6 +6,7 @@ import {
   PieChart,
   Calculator,
   Upload,
+  Receipt,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -31,6 +32,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'core' },
   { href: '/portfolio', label: 'Portfolio', icon: PieChart, group: 'core' },
+  { href: '/transactions', label: 'Transactions', icon: Receipt, group: 'core' },
   { href: '/performance', label: 'Performance', icon: LineChart, group: 'analytics' },
   { href: '/alerts', label: 'Alerts', icon: Bell, group: 'core' },
   { href: '/import', label: 'Import', icon: Upload, group: 'tools' },
