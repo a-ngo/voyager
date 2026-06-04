@@ -1,12 +1,9 @@
-import { displayName } from '@/lib/prices/resolve'
-
 /**
- * Two-line instrument cell: human-readable name on top, ISIN beneath. The ISIN
- * is hidden when it would just repeat the name (unknown instruments, where the
- * name falls back to the ISIN itself).
+ * Two-line instrument cell: resolved name on top, ISIN beneath. The ISIN is
+ * hidden when it would just repeat the name (unknown instruments). `name` is
+ * resolved by the caller (curated map → price-source name → ticker → ISIN).
  */
-export function InstrumentLabel({ isin, ticker }: { isin: string | null; ticker?: string | null }) {
-  const name = displayName(isin, ticker ?? null)
+export function InstrumentLabel({ name, isin }: { name: string; isin: string | null }) {
   const showIsin = !!isin && isin !== name
 
   return (

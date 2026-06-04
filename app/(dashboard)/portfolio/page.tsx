@@ -132,7 +132,7 @@ export default async function PortfolioPage() {
                   return (
                     <tr key={p.key}>
                       <td className="py-2">
-                        <InstrumentLabel isin={p.isin} ticker={p.ticker} />
+                        <InstrumentLabel name={p.label} isin={p.isin} />
                       </td>
                       <td className="py-2 text-right tabular-nums text-muted">
                         {formatQuantity(p.quantity)}
@@ -166,7 +166,7 @@ export default async function PortfolioPage() {
           </Link>
         </CardHeader>
         <CardContent>
-          <TransactionsTable rows={recent} />
+          <TransactionsTable rows={recent} names={o.names} />
         </CardContent>
       </Card>
 

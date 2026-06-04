@@ -27,11 +27,16 @@ export function resolveSymbol(isin: string | null): ResolvedSymbol | null {
 }
 
 /**
- * Human-readable label for a holding. Prefers the curated name, then the
- * ticker, then the ISIN, then a dash. Keeps ISINs out of the UI when we know
- * the instrument.
+ * Human-readable label for a holding. Priority: curated name (polished), then a
+ * name pulled from the price source (`names` map), then ticker, ISIN, dash.
+ * Keeps ISINs out of the UI whenever a name is known.
  */
-export function displayName(isin: string | null, ticker: string | null): string {
+export function displayName(
+  isin: string | null,
+  ticker: string | null,
+  names?: Record<string, string>,
+): string {
   if (isin && KNOWN[isin]) return KNOWN[isin].name
+  if (isin && names?.[isin]) return names[isin]
   return ticker ?? isin ?? '—'
 }

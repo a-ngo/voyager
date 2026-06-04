@@ -8,9 +8,10 @@ export interface StooqQuote {
   symbol: string
   close: number
   date: string
+  name: string | null
 }
 
-/** Parse Stooq's single-row CSV: Symbol,Date,Time,Open,High,Low,Close,Volume. */
+/** Parse Stooq's single-row CSV: Symbol,Date,Time,Open,High,Low,Close,Volume,Name. */
 export function parseStooqCsv(text: string, symbol: string): StooqQuote | null {
   const lines = text.trim().split('\n')
   const dataRow = lines[1]
@@ -21,11 +22,13 @@ export function parseStooqCsv(text: string, symbol: string): StooqQuote | null {
   if (!date || date === 'N/D' || !close || close === 'N/D') return null
   const value = Number(close)
   if (!Number.isFinite(value)) return null
-  return { symbol, close: value, date }
+  const rawName = cols[8]?.trim()
+  const name = rawName && rawName !== 'N/D' ? rawName : null
+  return { symbol, close: value, date, name }
 }
 
 export async function fetchStooqQuote(symbol: string): Promise<StooqQuote | null> {
-  const url = `https://stooq.com/q/l/?s=${encodeURIComponent(symbol)}&f=sd2t2ohlcv&h&e=csv`
+  const url = `https://stooq.com/q/l/?s=${encodeURIComponent(symbol)}&f=sd2t2ohlcvn&h&e=csv`
   try {
     const res = await fetch(url, { cache: 'no-store' })
     if (!res.ok) return null

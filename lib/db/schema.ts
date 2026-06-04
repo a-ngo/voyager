@@ -80,6 +80,7 @@ export const isinTickerMap = pgTable('isin_ticker_map', {
   isin: text('isin').primaryKey(),
   ticker: text('ticker').notNull(),
   exchange: text('exchange'),
+  name: text('name'),
   resolvedAt: timestamp('resolved_at', { withTimezone: true, mode: 'string' })
     .notNull()
     .defaultNow(),

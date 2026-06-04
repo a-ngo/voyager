@@ -3,6 +3,7 @@ import type { AssetClass } from '@/lib/import/types'
 import { getTransactionsForUser, type TransactionRow } from '@/lib/db/transactions'
 import { reconstructPortfolio, totalReturn, valuePortfolio } from '@/lib/finance/holdings'
 import { getEurPrices } from '@/lib/prices/quotes'
+import { getInstrumentNames } from '@/lib/prices/names'
 import { displayName } from '@/lib/prices/resolve'
 import { buildAllocation, toLedger, type OverviewSlice } from './overview'
 
@@ -49,6 +50,8 @@ export interface ValuedOverview {
   allocation: OverviewSlice[]
   positions: ValuedOverviewPosition[]
   transactions: TransactionRow[]
+  /** ISIN → resolved instrument name, for the transaction ledger. */
+  names: Record<string, string>
 }
 
 export async function getValuedOverview(userId: string): Promise<ValuedOverview> {
@@ -61,10 +64,16 @@ export async function getValuedOverview(userId: string): Promise<ValuedOverview>
   const valued = valuePortfolio(summary, prices)
   const ret = totalReturn(valued, summary)
 
+  // Names are populated by getEurPrices above (Stooq → isin_ticker_map), so read after.
+  const names = await getInstrumentNames([
+    ...summary.positions.map((p) => p.isin),
+    ...transactions.map((t) => t.isin),
+  ])
+
   const positions: ValuedOverviewPosition[] = valued.positions
     .map((p) => ({
       key: p.key,
-      label: displayName(p.isin, p.ticker),
+      label: displayName(p.isin, p.ticker, names),
       isin: p.isin,
       ticker: p.ticker,
       assetClass: p.assetClass,
@@ -98,5 +107,6 @@ export async function getValuedOverview(userId: string): Promise<ValuedOverview>
     allocation: buildAllocation(valued),
     positions,
     transactions,
+    names,
   }
 }

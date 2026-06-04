@@ -4,15 +4,23 @@ import { toEur } from '@/lib/prices/fx'
 import { resolveSymbol, displayName } from '@/lib/prices/resolve'
 
 describe('parseStooqCsv', () => {
-  const header = 'Symbol,Date,Time,Open,High,Low,Close,Volume'
+  const header = 'Symbol,Date,Time,Open,High,Low,Close,Volume,Name'
 
-  it('parses the close and date', () => {
-    const q = parseStooqCsv(`${header}\nAAPL.US,2026-06-04,17:00:24,313,313,309,310.585,7528092`, 'aapl.us')
-    expect(q).toEqual({ symbol: 'aapl.us', close: 310.585, date: '2026-06-04' })
+  it('parses the close, date, and name', () => {
+    const q = parseStooqCsv(
+      `${header}\nAAPL.US,2026-06-04,17:00:24,313,313,309,310.585,7528092,APPLE INC`,
+      'aapl.us',
+    )
+    expect(q).toEqual({ symbol: 'aapl.us', close: 310.585, date: '2026-06-04', name: 'APPLE INC' })
+  })
+
+  it('returns a null name when absent', () => {
+    const q = parseStooqCsv(`Symbol,Date,Time,Open,High,Low,Close,Volume\nAAPL.US,2026-06-04,17:00,1,1,1,310.585,1`, 'aapl.us')
+    expect(q?.name).toBeNull()
   })
 
   it('returns null for N/D (unknown symbol)', () => {
-    expect(parseStooqCsv(`${header}\nXXX,N/D,N/D,N/D,N/D,N/D,N/D,N/D`, 'xxx')).toBeNull()
+    expect(parseStooqCsv(`${header}\nXXX,N/D,N/D,N/D,N/D,N/D,N/D,N/D,N/D`, 'xxx')).toBeNull()
   })
 
   it('returns null for malformed input', () => {
@@ -69,5 +77,13 @@ describe('displayName', () => {
     expect(displayName('XX0000000000', 'TSLA')).toBe('TSLA')
     expect(displayName('XX0000000000', null)).toBe('XX0000000000')
     expect(displayName(null, null)).toBe('—')
+  })
+
+  it('uses an auto-pulled name for non-curated ISINs', () => {
+    expect(displayName('XX0000000000', null, { XX0000000000: 'Foo Corp' })).toBe('Foo Corp')
+  })
+
+  it('keeps the curated name over an auto-pulled one', () => {
+    expect(displayName('US0378331005', null, { US0378331005: 'APPLE INC' })).toBe('Apple')
   })
 })

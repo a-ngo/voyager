@@ -1,7 +1,7 @@
 import 'server-only'
 import { inArray } from 'drizzle-orm'
 import { getDb } from '@/lib/db'
-import { priceCache } from '@/lib/db/schema'
+import { isinTickerMap, priceCache } from '@/lib/db/schema'
 import { resolveSymbol } from './resolve'
 import { fetchStooqQuote } from './stooq'
 import { fetchEcbEurRates, toEur } from './fx'
@@ -49,8 +49,9 @@ export async function getEurPrices(items: { isin: string | null }[]): Promise<Eu
     }
   }
 
-  // Fetch any misses from Stooq and upsert into the cache.
-  for (const symbol of symbols) {
+  // Fetch any misses from Stooq and upsert into the cache. Also persist the
+  // instrument name into isin_ticker_map so the UI can show it later.
+  for (const [isin, { symbol }] of resolved) {
     if (quotes.has(symbol)) continue
     const q = await fetchStooqQuote(symbol)
     if (!q) continue
@@ -68,6 +69,15 @@ export async function getEurPrices(items: { isin: string | null }[]): Promise<Eu
         target: [priceCache.ticker, priceCache.date],
         set: { close: String(q.close), source: 'stooq', fetchedAt: new Date().toISOString() },
       })
+    if (q.name) {
+      await db
+        .insert(isinTickerMap)
+        .values({ isin, ticker: symbol, name: q.name, source: 'stooq' })
+        .onConflictDoUpdate({
+          target: isinTickerMap.isin,
+          set: { ticker: symbol, name: q.name, source: 'stooq', resolvedAt: new Date().toISOString() },
+        })
+    }
   }
 
   const rates = await fetchEcbEurRates()
