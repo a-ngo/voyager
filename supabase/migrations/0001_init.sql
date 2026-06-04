@@ -123,5 +123,12 @@ create policy "own alerts"            on alerts            for all using (auth.u
 create policy "own widget_instances"  on widget_instances  for all using (auth.uid() = user_id);
 create policy "own dashboard_layouts" on dashboard_layouts for all using (auth.uid() = user_id);
 
--- isin_ticker_map and price_cache hold only public market data (no PII) and are
--- intentionally readable by all authenticated users; writes happen server-side.
+-- isin_ticker_map and price_cache hold only public market data (no PII), shared
+-- across all users. RLS is still enabled so the public anon key cannot write to
+-- them. Authenticated users may read; writes happen server-side via the service
+-- role, which bypasses RLS.
+alter table isin_ticker_map enable row level security;
+alter table price_cache     enable row level security;
+
+create policy "read market data" on isin_ticker_map for select to authenticated using (true);
+create policy "read price cache" on price_cache     for select to authenticated using (true);
