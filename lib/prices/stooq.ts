@@ -1,7 +1,7 @@
 /**
  * Stooq price adapter (free, keyless). Yahoo Finance 429s from datacenter IPs,
- * so Stooq is the price source (see CLAUDE.md §7). One symbol per request — the
- * batch CSV endpoint returns N/D.
+ * so Stooq is the price source. One symbol per request — the batch CSV endpoint
+ * returns N/D.
  */
 
 export interface StooqQuote {

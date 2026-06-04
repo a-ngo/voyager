@@ -1,5 +1,5 @@
 /**
- * Token-bucket rate limiter for the price/AI endpoints (CLAUDE.md §4, §7).
+ * Token-bucket rate limiter for the price/AI endpoints.
  * Pure logic: `now` is injectable so it's deterministic to test.
  *
  * Caveat: state is in-memory per server instance. On serverless (Vercel) each

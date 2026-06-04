@@ -6,7 +6,7 @@ import { resolveSymbol } from './resolve'
 import { fetchStooqQuote } from './stooq'
 import { fetchEcbEurRates, toEur } from './fx'
 
-const PRICE_TTL_MS = 60 * 60 * 1000 // 1h — current price freshness (CLAUDE.md §7)
+const PRICE_TTL_MS = 60 * 60 * 1000 // 1h — current price freshness
 
 export interface EurPrices {
   /** EUR price keyed by ISIN. */
