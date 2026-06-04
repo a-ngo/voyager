@@ -85,9 +85,9 @@ const taxOf = (gross) => -Number((gross * 0.26375).toFixed(2)) // German withhol
 
 // ── Opening + periodic deposits (carry synthetic PII to test stripping) ─────
 const deposits = [
-  [0, 5, 3000], // 2021-01
-  [12, 3, 2500], // 2022-01
-  [24, 3, 2500], // 2023-01
+  [0, 5, 6000], // 2021-01 — opening lump sum
+  [12, 3, 5000], // 2022-01
+  [24, 3, 5000], // 2023-01
 ]
 for (const [mi, day, amt] of deposits) {
   row({ month: monthOf(mi), day, type: 'CUSTOMER_INBOUND', category: 'CASH', amount: amt,
@@ -170,5 +170,19 @@ writeFileSync(out, lines.join('\n') + '\n')
 
 const byType = {}
 for (const r of rows) byType[r.type] = (byType[r.type] ?? 0) + 1
+
+// Rough cash tally (mirrors the holdings engine) to keep the demo cash positive.
+let cash = 0
+for (const r of rows) {
+  const amt = Math.abs(Number(r.amount) || 0)
+  const fee = Math.abs(Number(r.fee) || 0)
+  const tax = Math.abs(Number(r.tax) || 0)
+  if (['CUSTOMER_INBOUND', 'ROUND_UP', 'INTEREST', 'TAX_REFUND', 'DIVIDEND', 'STOCKPERK'].includes(r.type)) cash += amt
+  else if (['CUSTOMER_OUTBOUND', 'CARD_TRANSACTION'].includes(r.type)) cash -= amt
+  else if (['BUY', 'SAVINGS_PLAN_EXECUTE'].includes(r.type)) cash -= amt + fee
+  else if (r.type === 'SELL') cash += amt - fee - tax
+}
+
 console.log(`Wrote ${rows.length} rows to ${out}`)
 console.log('By type:', byType)
+console.log(`Approx ending cash: EUR ${cash.toFixed(2)} ${cash < 0 ? '⚠️ NEGATIVE — raise deposits' : '✓'}`)

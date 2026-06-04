@@ -264,6 +264,30 @@ export function valuePortfolio(
   }
 }
 
+/**
+ * Values every position at its own cost basis (price = average cost). Lets the
+ * allocation/return helpers run before a live price source exists — the result
+ * reflects what was paid, not current market value.
+ */
+export function valueAtCost(summary: PortfolioSummary): ValuedPortfolio {
+  const positions: ValuedPosition[] = summary.positions.map((p) => ({
+    ...p,
+    price: p.averageCost,
+    priced: true,
+    marketValue: p.costBasis,
+    unrealizedPnl: 0,
+  }))
+  const holdingsValue = positions.reduce((sum, p) => sum + p.costBasis, 0)
+  return {
+    positions,
+    holdingsValue,
+    cash: summary.cash,
+    netWorth: holdingsValue + summary.cash,
+    unpricedCount: 0,
+    currency: summary.currency,
+  }
+}
+
 export interface AllocationSlice {
   bucket: AssetClass | 'cash' | 'other'
   label: string

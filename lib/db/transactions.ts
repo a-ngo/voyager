@@ -1,5 +1,5 @@
 import 'server-only'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import type { MappedTransaction } from '@/lib/import/types'
 import type { PersistTransaction } from '@/lib/import/trade-republic/importer'
 import { getDb } from './index'
@@ -8,6 +8,47 @@ import { portfolios, transactions } from './schema'
 /** Drizzle numeric columns are strings; convert prepared numbers (or null). */
 function num(value: number | null): string | null {
   return value === null ? null : String(value)
+}
+
+/** A transaction row as read back for display + portfolio reconstruction. */
+export interface TransactionRow {
+  id: string
+  type: string
+  assetClass: string | null
+  isin: string | null
+  ticker: string | null
+  quantity: string | null
+  price: string | null
+  amount: string | null
+  fee: string | null
+  tax: string | null
+  currency: string
+  date: string
+  datetime: string
+}
+
+/** All of a user's transactions, oldest first. Scoped by user_id (RLS-equivalent). */
+export async function getTransactionsForUser(userId: string): Promise<TransactionRow[]> {
+  const db = getDb()
+  return db
+    .select({
+      id: transactions.id,
+      type: transactions.type,
+      assetClass: transactions.assetClass,
+      isin: transactions.isin,
+      ticker: transactions.ticker,
+      quantity: transactions.quantity,
+      price: transactions.price,
+      amount: transactions.amount,
+      fee: transactions.fee,
+      tax: transactions.tax,
+      currency: transactions.currency,
+      date: transactions.date,
+      datetime: transactions.datetime,
+    })
+    .from(transactions)
+    .where(eq(transactions.userId, userId))
+    .orderBy(asc(transactions.datetime))
 }
 
 /**
