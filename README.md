@@ -42,8 +42,38 @@ editor, sign up at `/signup`, and import a CSV at `/import`.
 ### Cloud or local database
 
 Run against hosted Supabase (`npm run dev`) or a fully local Supabase stack in Docker
-(`npm run dev:local`) — switching is just an env file, no code changes. See
-[`docs/local-database.md`](./docs/local-database.md) for the one-time Docker setup.
+(`npm run dev:local`) — switching is just an env file, no code changes. "Local" means the
+local **Supabase** stack (Postgres + Auth), not a bare Postgres, because auth and the
+`auth.users` foreign keys come from Supabase.
+
+**One-time local setup:**
+
+```bash
+# 1. Install Docker Desktop (and start it), then the Supabase CLI:
+brew install supabase/tap/supabase        # macOS; see supabase.com/docs for other OSes
+
+# 2. From the repo root, boot the local stack and apply migrations:
+supabase init                              # once — creates supabase/config.toml
+supabase start                            # boots Postgres + Auth in Docker; prints URLs + keys
+supabase db reset                         # applies supabase/migrations/* into the local DB
+
+# 3. Point the app at it:
+cp .env.docker.example .env.docker         # then paste the values supabase start printed
+```
+
+Map the `supabase start` output into `.env.docker`: **API URL** → `NEXT_PUBLIC_SUPABASE_URL`,
+**anon key** / **service_role key** → the two key vars, **DB URL** → `DATABASE_URL`. (The S3
+storage values aren't used.) Shared keys like `STOOQ_API_KEY` stay in `.env.local` and are
+merged in automatically.
+
+```bash
+npm run dev:local            # http://localhost:3000, against the local stack
+```
+
+Sign up at `/signup`; confirmation emails are caught locally by Inbucket at
+http://localhost:54324, and you can browse tables in Supabase Studio at http://localhost:54323.
+Local and cloud are separate databases (separate accounts, no sync). `supabase stop` shuts the
+stack down. More detail in [`docs/local-database.md`](./docs/local-database.md).
 
 ## What's in this skeleton
 
