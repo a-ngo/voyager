@@ -20,24 +20,35 @@ Zod · Supabase (Postgres + Auth + RLS) · Drizzle · Anthropic Claude · Resend
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Supabase / Anthropic / Resend keys
-npm run dev                  # http://localhost:3000  (redirects to /dashboard)
+cp .env.example .env.local   # fill in Supabase + Stooq / OpenFIGI / Anthropic keys
+npm run dev                  # cloud Supabase → http://localhost:3000 (redirects to /dashboard)
 ```
+
+Then run `supabase/migrations/0001_init.sql` and `0002_isin_name.sql` in your Supabase SQL
+editor, sign up at `/signup`, and import a CSV at `/import`.
 
 ## Scripts
 
 | Script | Purpose |
 |---|---|
-| `npm run dev` | Start the dev server |
+| `npm run dev` / `dev:cloud` | Dev server against hosted Supabase (`.env.local`) |
+| `npm run dev:local` | Dev server against a local Supabase stack in Docker (`.env.docker`) |
 | `npm run build` | Production build |
+| `npm run build:local` | Production build against the local stack |
 | `npm run lint` | ESLint (`next lint`) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test` | Vitest unit tests |
 
+### Cloud or local database
+
+Run against hosted Supabase (`npm run dev`) or a fully local Supabase stack in Docker
+(`npm run dev:local`) — switching is just an env file, no code changes. See
+[`docs/local-database.md`](./docs/local-database.md) for the one-time Docker setup.
+
 ## What's in this skeleton
 
-- **App shell** — sidebar driven entirely by `components/shared/nav-config.ts` (navigation as data).
-  Dark, monospace, One-Dark-inspired theme (see `app/globals.css`).
+- **App shell** — sidebar driven entirely by `components/shared/nav-config.ts` (navigation as data),
+  collapsible. Warm, editorial theme (Inter + Newsreader) with a light/dark toggle (dark default).
 - **Dashboard widget system** — `components/widgets/registry.ts` is the single source of truth.
   Drag/resize grid (`react-grid-layout`), edit/view modes, widget picker. Layout persists to
   `localStorage` as a stand-in until the Supabase tables are wired. Five widgets ship today:
@@ -53,10 +64,11 @@ npm run dev                  # http://localhost:3000  (redirects to /dashboard)
 
 ### Importing your Trade Republic history
 
-A sample export lives at `tests/fixtures/trade-republic-sample.csv` (used by the unit tests).
-Once Supabase auth + persistence are wired (see the `TODO(phase-1)` in the import route), upload
-your own export at `/import` — it is processed entirely server-side and PII is stripped before
-anything is stored.
+Upload your export at `/import` — it is processed entirely server-side, PII is stripped before
+anything is stored, and re-importing the same file is idempotent. A realistic 3-year sample
+(monthly MSCI World savings plan + individual stocks, dividends, a sell) lives at
+`tests/fixtures/trade-republic-3y-portfolio.csv`; regenerate or tweak it with
+`node scripts/gen-sample-csv.mjs`.
 
 ### Regenerating the dashboard screenshot
 
@@ -67,9 +79,14 @@ npm run build && npx next start -p 3100 &   # or: npm run dev (port 3000)
 URL=http://localhost:3100/dashboard npm run screenshot
 ```
 
-## Not yet wired (intentional skeleton gaps)
+## Wired today
 
-- Supabase auth + Drizzle persistence in the import route (parsing/PII-strip is real today).
-- ISIN→ticker resolution (OpenFIGI), price fetching, and the AI assistant endpoint.
+- **Auth + persistence** — Supabase email/password, RLS, Drizzle; import persists to the DB.
+- **Live market value** — Stooq prices + ECB FX, ISIN→symbol via curated map → OpenFIGI auto-resolution.
+- **Real Portfolio, Transactions, Dashboard, Performance, and Settings pages** — no mock data left.
+- **Performance over time** — value vs. net invested, gated on a free `STOOQ_API_KEY`.
 
-These are called out with `TODO(phase-1)` markers in the code.
+## Not yet wired
+
+- AI assistant endpoint (Claude), email alerts (Resend), manual transaction add/edit/delete.
+- Benchmark overlay (portfolio vs. MSCI World) and TWR/MWR metrics.

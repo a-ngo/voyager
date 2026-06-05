@@ -5,7 +5,10 @@
   "description": "Voyager — private, AI-powered portfolio intelligence",
   "scripts": {
     "dev": "next dev",
+    "dev:cloud": "next dev",
+    "dev:local": "dotenv -e .env.docker -- next dev",
     "build": "next build",
+    "build:local": "dotenv -e .env.docker -- next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -37,6 +40,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/react-grid-layout": "^1.3.5",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.6",
