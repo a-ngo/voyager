@@ -69,6 +69,14 @@ describe('reconstructPortfolio', () => {
     expect(pos?.averageCost).toBeCloseTo(110)
   })
 
+  it('handles negative sell shares (real broker sign convention)', () => {
+    const s = reconstructPortfolio([
+      tx({ type: 'buy', quantity: 10, price: 100 }),
+      tx({ type: 'sell', quantity: -4, price: 120 }), // shares signed negative on sells
+    ])
+    expect(s.positions[0]?.quantity).toBeCloseTo(6)
+  })
+
   it('computes realized P/L on a partial sell and keeps the remainder', () => {
     const s = reconstructPortfolio([
       tx({ type: 'buy', quantity: 10, price: 100 }),

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { TransactionsTable } from '@/components/portfolio/TransactionsTable'
 import { createClient } from '@/lib/supabase/server'
 import { getTransactionsForUser } from '@/lib/db/transactions'
+import { namesFromTransactions } from '@/lib/portfolio/overview'
 import { getInstrumentNames } from '@/lib/prices/names'
 
 export default async function TransactionsPage() {
@@ -18,7 +19,10 @@ export default async function TransactionsPage() {
 
   const rows = await getTransactionsForUser(user.id)
   const newestFirst = [...rows].reverse()
-  const names = await getInstrumentNames(rows.map((r) => r.isin))
+  const names = {
+    ...(await getInstrumentNames(rows.map((r) => r.isin))),
+    ...namesFromTransactions(rows),
+  }
 
   return (
     <div className="flex flex-col gap-4">

@@ -9,7 +9,7 @@ import { reconstructPortfolio, totalReturn, valuePortfolio } from '@/lib/finance
 import { getEurPrices } from '@/lib/prices/quotes'
 import { getInstrumentNames } from '@/lib/prices/names'
 import { displayName } from '@/lib/prices/resolve'
-import { buildAllocation, toLedger, type OverviewSlice } from './overview'
+import { buildAllocation, namesFromTransactions, toLedger, type OverviewSlice } from './overview'
 
 /**
  * Market-valued portfolio overview: ledger → holdings engine → live EUR prices.
@@ -97,11 +97,12 @@ export async function getValuedOverview(userId: string): Promise<ValuedOverview>
   const valued = valuePortfolio(summary, prices)
   const ret = totalReturn(valued, summary)
 
-  // Names are populated by getEurPrices above (Stooq → isin_ticker_map), so read after.
-  const names = await getInstrumentNames([
+  // Broker-provided names (from the import) take priority, then Stooq names.
+  const stooqNames = await getInstrumentNames([
     ...summary.positions.map((p) => p.isin),
     ...transactions.map((t) => t.isin),
   ])
+  const names = { ...stooqNames, ...namesFromTransactions(transactions) }
 
   const positions: ValuedOverviewPosition[] = valued.positions
     .map((p) => ({

@@ -127,7 +127,9 @@ export function reconstructPortfolio(transactions: LedgerTransaction[]): Portfol
     const amount = Math.abs(tx.amount ?? 0)
     const feeAbs = Math.abs(tx.fee ?? 0)
     const taxAbs = Math.abs(tx.tax ?? 0)
-    const qty = tx.quantity ?? 0
+    // Magnitude only — type carries the direction. Real exports sign sells as
+    // negative shares; this keeps buy/sell/reward math correct either way.
+    const qty = Math.abs(tx.quantity ?? 0)
 
     switch (tx.type) {
       case 'buy': {

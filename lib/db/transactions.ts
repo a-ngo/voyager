@@ -38,6 +38,7 @@ export interface TransactionRow {
   assetClass: string | null
   isin: string | null
   ticker: string | null
+  name: string | null
   quantity: string | null
   price: string | null
   amount: string | null
@@ -58,6 +59,7 @@ export async function getTransactionsForUser(userId: string): Promise<Transactio
       assetClass: transactions.assetClass,
       isin: transactions.isin,
       ticker: transactions.ticker,
+      name: transactions.name,
       quantity: transactions.quantity,
       price: transactions.price,
       amount: transactions.amount,
@@ -114,6 +116,7 @@ export function makePersist(userId: string, portfolioId: string): PersistTransac
         assetClass: tx.assetClass,
         isin: tx.isin,
         ticker: tx.ticker,
+        name: tx.name,
         quantity: num(tx.quantity),
         price: num(tx.price),
         amount: num(tx.amount),

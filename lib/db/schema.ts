@@ -44,6 +44,7 @@ export const transactions = pgTable(
 
     isin: text('isin'),
     ticker: text('ticker'),
+    name: text('name'),
 
     quantity: numeric('quantity'),
     price: numeric('price'),

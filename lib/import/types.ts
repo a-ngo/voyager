@@ -20,6 +20,7 @@ export interface MappedTransaction {
   assetClass: AssetClass | null
   isin: string | null
   ticker: string | null
+  name: string | null
   quantity: number | null
   price: number | null
   amount: number | null

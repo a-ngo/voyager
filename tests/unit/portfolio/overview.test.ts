@@ -9,6 +9,7 @@ function rowsToLedger(rows: Partial<TransactionRow>[]) {
     assetClass: 'etf',
     isin: 'IE00TEST',
     ticker: null,
+    name: null,
     quantity: null,
     price: null,
     amount: null,

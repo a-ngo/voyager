@@ -11,6 +11,7 @@ export const TR_ALLOWED_COLUMNS = [
   'date',
   'type',
   'asset_class',
+  'name',
   'symbol',
   'shares',
   'price',
@@ -21,7 +22,6 @@ export const TR_ALLOWED_COLUMNS = [
   'original_amount',
   'original_currency',
   'fx_rate',
-  'transaction_id',
 ] as const
 
 /** Columns that carry PII and must never be stored or logged. */

@@ -17,6 +17,15 @@ import { BUCKET_COLOR, type Bucket } from './buckets'
 
 const num = (s: string | null): number | null => (s == null ? null : Number(s))
 
+/** ISIN → instrument name from the broker export (latest non-empty wins). */
+export function namesFromTransactions(rows: TransactionRow[]): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const r of rows) {
+    if (r.isin && r.name && r.name.trim()) map[r.isin] = r.name.trim()
+  }
+  return map
+}
+
 /** DB rows → the holdings engine's input shape. */
 export function toLedger(rows: TransactionRow[]): LedgerTransaction[] {
   return rows.map((r) => ({

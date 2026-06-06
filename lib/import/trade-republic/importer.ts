@@ -1,7 +1,7 @@
 import type { AssetClass, ImportError, ImportResult, MappedTransaction } from '../types'
 import { parseCsv } from './parse-csv'
 import { sanitizeRow, TR_ALLOWED_COLUMNS, type TRAllowedColumn } from './sanitize'
-import { TRRowSchema } from './schema'
+import { TRRowSchema, type TRRow } from './schema'
 import { mapTrType } from './type-map'
 
 const KNOWN_ASSET_CLASSES: Record<string, AssetClass> = {
@@ -64,7 +64,22 @@ export function prepareTradeRepublicImport(csvText: string): PreparedImport {
     }
 
     const tr = parsed.data
-    const type = mapTrType(tr.type)
+
+    // TAX_OPTIMIZATION carries its cash in the (signed) tax column, not amount:
+    // positive = refund (cash in), negative = charge (cash out). Normalize it so
+    // the type-driven engine handles the direction.
+    let type: ReturnType<typeof mapTrType>
+    let amount = parseNumber(tr.amount)
+    let tax = parseNumber(tr.tax)
+    if (tr.type === 'TAX_OPTIMIZATION') {
+      const taxValue = parseNumber(tr.tax) ?? 0
+      type = taxValue >= 0 ? 'tax_refund' : 'fee'
+      amount = taxValue // engine takes the magnitude; the type carries the sign
+      tax = null
+    } else {
+      type = mapTrType(tr.type)
+    }
+
     if (!type) {
       errors.push({ row: rowNumber, reason: `Unknown Trade Republic type: ${tr.type}` })
       return
@@ -75,23 +90,41 @@ export function prepareTradeRepublicImport(csvText: string): PreparedImport {
       assetClass: mapAssetClass(tr.asset_class),
       isin: tr.symbol ?? null,
       ticker: null, // resolved lazily via OpenFIGI after import
+      name: cleanName(tr.name),
       quantity: parseNumber(tr.shares),
       price: parseNumber(tr.price),
-      amount: parseNumber(tr.amount),
+      amount,
       fee: parseNumber(tr.fee),
-      tax: parseNumber(tr.tax),
-      currency: tr.currency,
+      tax,
+      currency: tr.currency ?? 'EUR',
       originalAmount: parseNumber(tr.original_amount),
       originalCurrency: tr.original_currency ?? null,
       fxRate: parseNumber(tr.fx_rate),
       date: tr.date,
       datetime: tr.datetime,
       broker: 'trade_republic',
-      externalId: tr.transaction_id,
+      externalId: dedupKey(tr),
     })
   })
 
   return { total: rows.length, transactions, errors }
+}
+
+/** Trim the instrument name; blank/whitespace becomes null. */
+function cleanName(value: string | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+/**
+ * Content-based dedup key. The TR export has no transaction id, and each export
+ * is cumulative, so we identify a transaction by its immutable content (time +
+ * instrument + size). Re-importing the same or a later export skips rows already
+ * seen (idempotent), keyed via UNIQUE (user_id, broker, external_id).
+ */
+function dedupKey(tr: TRRow): string {
+  return [tr.datetime, tr.type, tr.symbol ?? '', tr.shares ?? '', tr.amount ?? '', tr.tax ?? '']
+    .join('|')
 }
 
 /** Persists one transaction. Returns whether it was newly inserted or a duplicate. */
