@@ -10,6 +10,21 @@ function num(value: number | null): string | null {
   return value === null ? null : String(value)
 }
 
+/**
+ * Wipes the user's portfolio data — all transactions and portfolios (alerts
+ * cascade) — so they can re-import from scratch. Shared market data (price_cache,
+ * isin_ticker_map) and dashboard layout are left intact. Scoped by user_id.
+ */
+export async function deleteUserPortfolioData(userId: string): Promise<{ transactions: number }> {
+  const db = getDb()
+  const removed = await db
+    .delete(transactions)
+    .where(eq(transactions.userId, userId))
+    .returning({ id: transactions.id })
+  await db.delete(portfolios).where(eq(portfolios.userId, userId))
+  return { transactions: removed.length }
+}
+
 /** The user's default-portfolio target allocations (bucket → percent), or {}. */
 export async function getTargetAllocations(userId: string): Promise<Record<string, number>> {
   const db = getDb()

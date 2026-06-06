@@ -52,46 +52,43 @@ async function fetchQuoteCached(db: Db, symbol: string, currency: string): Promi
   return { close: q.close, date: q.date, name: q.name }
 }
 
-interface Resolution {
+export interface ResolvedSymbol {
   symbol: string
   currency: string
-  quote: Quote
 }
 
-/** Resolve an ISIN to a priced symbol: curated map → cached mapping → OpenFIGI. */
-async function resolve(db: Db, isin: string): Promise<Resolution | null> {
-  // 1. Curated map (highest quality).
+/**
+ * Resolve an ISIN to a tradeable Stooq symbol: curated map → cached DB mapping →
+ * OpenFIGI (each candidate validated against Stooq, the winner persisted to
+ * isin_ticker_map). Shared by the current-price and historical-series paths so
+ * both cover the same holdings.
+ */
+export async function resolveToSymbol(isin: string): Promise<ResolvedSymbol | null> {
   const curated = resolveSymbol(isin)
-  if (curated) {
-    const quote = await fetchQuoteCached(db, curated.stooq, curated.currency)
-    return quote ? { symbol: curated.stooq, currency: curated.currency, quote } : null
-  }
+  if (curated) return { symbol: curated.stooq, currency: curated.currency }
 
-  // 2. Previously resolved mapping in the DB.
+  const db = getDb()
   const [mapped] = await db
     .select()
     .from(isinTickerMap)
     .where(eq(isinTickerMap.isin, isin))
     .limit(1)
   if (mapped?.ticker) {
-    const currency = currencyForSymbol(mapped.ticker) ?? 'EUR'
-    const quote = await fetchQuoteCached(db, mapped.ticker, currency)
-    if (quote) return { symbol: mapped.ticker, currency, quote }
+    return { symbol: mapped.ticker, currency: currencyForSymbol(mapped.ticker) ?? 'EUR' }
   }
 
-  // 3. OpenFIGI — try candidates until one prices, then persist the winner.
   for (const candidate of await openFigiCandidates(isin)) {
-    const quote = await fetchQuoteCached(db, candidate.stooq, candidate.currency)
+    const quote = await fetchQuoteCached(getDb(), candidate.stooq, candidate.currency)
     if (!quote) continue
     const name = quote.name ?? candidate.name
-    await db
+    await getDb()
       .insert(isinTickerMap)
       .values({ isin, ticker: candidate.stooq, name, source: 'openfigi' })
       .onConflictDoUpdate({
         target: isinTickerMap.isin,
         set: { ticker: candidate.stooq, name, source: 'openfigi', resolvedAt: new Date().toISOString() },
       })
-    return { symbol: candidate.stooq, currency: candidate.currency, quote }
+    return { symbol: candidate.stooq, currency: candidate.currency }
   }
 
   return null
@@ -112,18 +109,23 @@ export async function getEurPrices(items: { isin: string | null }[]): Promise<Eu
   let asOf: string | null = null
 
   for (const isin of isins) {
-    const r = await resolve(db, isin)
-    if (!r) {
+    const resolved = await resolveToSymbol(isin)
+    if (!resolved) {
       unresolved.push(isin)
       continue
     }
-    const eur = toEur(r.quote.close, r.currency, rates)
+    const quote = await fetchQuoteCached(db, resolved.symbol, resolved.currency)
+    if (!quote) {
+      unresolved.push(isin)
+      continue
+    }
+    const eur = toEur(quote.close, resolved.currency, rates)
     if (eur == null) {
       unresolved.push(isin)
       continue
     }
     prices[isin] = eur
-    asOf = asOf ?? r.quote.date
+    asOf = asOf ?? quote.date
   }
 
   return { prices, unresolved, asOf }

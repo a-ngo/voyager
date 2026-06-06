@@ -1,9 +1,9 @@
 import 'server-only'
 import { eq } from 'drizzle-orm'
 import { getDb } from '@/lib/db'
-import { isinTickerMap, priceCache } from '@/lib/db/schema'
+import { priceCache } from '@/lib/db/schema'
 import { getTransactionsForUser } from '@/lib/db/transactions'
-import { currencyForSymbol, resolveSymbol } from '@/lib/prices/resolve'
+import { resolveToSymbol } from '@/lib/prices/quotes'
 import { fetchStooqHistory } from '@/lib/prices/history'
 import { fetchEcbEurRates } from '@/lib/prices/fx'
 import {
@@ -33,24 +33,6 @@ function ymd(date: Date): string {
 }
 function ymdDaysAgo(days: number): string {
   return ymd(new Date(Date.now() - days * 86_400_000))
-}
-
-async function resolveStooqSymbol(
-  db: Db,
-  isin: string,
-): Promise<{ symbol: string; currency: string } | null> {
-  const curated = resolveSymbol(isin)
-  if (curated) return { symbol: curated.stooq, currency: curated.currency }
-
-  const [mapped] = await db
-    .select()
-    .from(isinTickerMap)
-    .where(eq(isinTickerMap.isin, isin))
-    .limit(1)
-  if (mapped?.ticker) {
-    return { symbol: mapped.ticker, currency: currencyForSymbol(mapped.ticker) ?? 'EUR' }
-  }
-  return null
 }
 
 /** Monthly closes for a symbol: cached history (refetched when stale) + the current price. */
@@ -119,7 +101,7 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
   const series: InstrumentSeries[] = []
   const missing: string[] = []
   for (const isin of heldIsins) {
-    const resolved = await resolveStooqSymbol(db, isin)
+    const resolved = await resolveToSymbol(isin)
     if (!resolved) {
       missing.push(isin)
       continue

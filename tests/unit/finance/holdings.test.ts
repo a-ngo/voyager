@@ -7,6 +7,9 @@ import {
   type LedgerTransaction,
 } from '@/lib/finance/holdings'
 
+// Values follow the real broker sign convention: inflows positive, outflows
+// (buys, withdrawals) negative, fees and withholding tax negative, and sell
+// shares negative.
 function tx(overrides: Partial<LedgerTransaction>): LedgerTransaction {
   return {
     type: 'buy',
@@ -35,20 +38,20 @@ describe('reconstructPortfolio', () => {
     expect(s.realizedPnl).toBe(0)
   })
 
-  it('tracks cash and net contributions for deposits and withdrawals', () => {
+  it('tracks cash and net contributions (withdrawal amount is negative)', () => {
     const s = reconstructPortfolio([
       tx({ type: 'deposit', amount: 2000, assetClass: 'cash', isin: null }),
-      tx({ type: 'withdrawal', amount: 500, assetClass: 'cash', isin: null }),
+      tx({ type: 'withdrawal', amount: -500, assetClass: 'cash', isin: null }),
     ])
     expect(s.cash).toBeCloseTo(1500)
     expect(s.netContributions).toBeCloseTo(1500)
     expect(s.positions).toEqual([])
   })
 
-  it('capitalizes buy fees into cost basis and reduces cash', () => {
+  it('capitalizes the buy fee into cost basis and reduces cash by amount + fee', () => {
     const s = reconstructPortfolio([
       tx({ type: 'deposit', amount: 2000, assetClass: 'cash', isin: null }),
-      tx({ type: 'buy', quantity: 10, price: 100, fee: 1 }),
+      tx({ type: 'buy', quantity: 10, amount: -1000, fee: -1 }),
     ])
     const pos = s.positions[0]
     expect(pos?.quantity).toBeCloseTo(10)
@@ -60,8 +63,8 @@ describe('reconstructPortfolio', () => {
 
   it('uses average cost across multiple buys', () => {
     const s = reconstructPortfolio([
-      tx({ type: 'buy', quantity: 10, price: 100 }),
-      tx({ type: 'buy', quantity: 10, price: 120 }),
+      tx({ type: 'buy', quantity: 10, amount: -1000 }),
+      tx({ type: 'buy', quantity: 10, amount: -1200 }),
     ])
     const pos = s.positions[0]
     expect(pos?.quantity).toBeCloseTo(20)
@@ -71,17 +74,17 @@ describe('reconstructPortfolio', () => {
 
   it('handles negative sell shares (real broker sign convention)', () => {
     const s = reconstructPortfolio([
-      tx({ type: 'buy', quantity: 10, price: 100 }),
-      tx({ type: 'sell', quantity: -4, price: 120 }), // shares signed negative on sells
+      tx({ type: 'buy', quantity: 10, amount: -1000 }),
+      tx({ type: 'sell', quantity: -4, amount: 480 }), // sells are signed negative
     ])
     expect(s.positions[0]?.quantity).toBeCloseTo(6)
   })
 
   it('computes realized P/L on a partial sell and keeps the remainder', () => {
     const s = reconstructPortfolio([
-      tx({ type: 'buy', quantity: 10, price: 100 }),
-      tx({ type: 'buy', quantity: 10, price: 120 }), // avg 110
-      tx({ type: 'sell', quantity: 5, price: 130 }), // proceeds 650, cost 550
+      tx({ type: 'buy', quantity: 10, amount: -1000 }),
+      tx({ type: 'buy', quantity: 10, amount: -1200 }), // avg 110
+      tx({ type: 'sell', quantity: -5, amount: 650 }), // proceeds 650, cost 550
     ])
     const pos = s.positions[0]
     expect(pos?.quantity).toBeCloseTo(15)
@@ -92,8 +95,8 @@ describe('reconstructPortfolio', () => {
 
   it('closes a position fully sold and keeps its realized P/L in the summary', () => {
     const s = reconstructPortfolio([
-      tx({ type: 'buy', quantity: 10, price: 100 }),
-      tx({ type: 'sell', quantity: 10, price: 130 }),
+      tx({ type: 'buy', quantity: 10, amount: -1000 }),
+      tx({ type: 'sell', quantity: -10, amount: 1300 }),
     ])
     expect(s.positions).toEqual([]) // flat, excluded from open positions
     expect(s.realizedPnl).toBeCloseTo(300)
@@ -101,8 +104,8 @@ describe('reconstructPortfolio', () => {
 
   it('subtracts sell fees and taxes from proceeds', () => {
     const s = reconstructPortfolio([
-      tx({ type: 'buy', quantity: 10, price: 100 }),
-      tx({ type: 'sell', quantity: 10, price: 130, fee: 2, tax: 8 }),
+      tx({ type: 'buy', quantity: 10, amount: -1000 }),
+      tx({ type: 'sell', quantity: -10, amount: 1300, fee: -2, tax: -8 }),
     ])
     // proceeds = 1300 - 2 - 8 = 1290; cost 1000 → realized 290
     expect(s.realizedPnl).toBeCloseTo(290)
@@ -117,12 +120,18 @@ describe('reconstructPortfolio', () => {
     ])
     expect(s.income).toBeCloseTo(67)
     expect(s.cash).toBeCloseTo(67)
-    expect(s.positions).toEqual([]) // income alone creates no position
+    expect(s.positions).toEqual([])
+  })
+
+  it('deducts withholding tax from a dividend (amount is gross, tax negative)', () => {
+    const s = reconstructPortfolio([tx({ type: 'dividend', amount: 10, tax: -2, isin: 'IE00TEST' })])
+    expect(s.cash).toBeCloseTo(8) // net credited
+    expect(s.income).toBeCloseTo(8)
   })
 
   it('adds free shares for a reward with a quantity at zero cost', () => {
     const s = reconstructPortfolio([
-      tx({ type: 'reward', quantity: 1, price: 0, isin: 'US0000REWARD', assetClass: 'stock' }),
+      tx({ type: 'reward', quantity: 1, isin: 'US0000REWARD', assetClass: 'stock' }),
     ])
     const pos = s.positions[0]
     expect(pos?.quantity).toBeCloseTo(1)
@@ -131,26 +140,17 @@ describe('reconstructPortfolio', () => {
   })
 
   it('treats a reward without a quantity as cash income', () => {
-    const s = reconstructPortfolio([
-      tx({ type: 'reward', amount: 15, assetClass: 'cash', isin: null }),
-    ])
+    const s = reconstructPortfolio([tx({ type: 'reward', amount: 15, assetClass: 'cash', isin: null })])
     expect(s.cash).toBeCloseTo(15)
     expect(s.income).toBeCloseTo(15)
     expect(s.positions).toEqual([])
-  })
-
-  it('ignores the stored sign of amount (drives off type)', () => {
-    const s = reconstructPortfolio([
-      tx({ type: 'withdrawal', amount: -500, assetClass: 'cash', isin: null }),
-    ])
-    expect(s.cash).toBeCloseTo(-500)
   })
 })
 
 describe('valuePortfolio', () => {
   const summary = reconstructPortfolio([
     tx({ type: 'deposit', amount: 2000, assetClass: 'cash', isin: null }),
-    tx({ type: 'buy', quantity: 10, price: 100, isin: 'IE00TEST' }),
+    tx({ type: 'buy', quantity: 10, amount: -1000, isin: 'IE00TEST' }),
   ])
 
   it('values positions and computes unrealized P/L and net worth', () => {
@@ -165,7 +165,9 @@ describe('valuePortfolio', () => {
   })
 
   it('falls back to a ticker price when ISIN is absent', () => {
-    const s = reconstructPortfolio([tx({ type: 'buy', quantity: 2, price: 50, isin: null, ticker: 'AAPL' })])
+    const s = reconstructPortfolio([
+      tx({ type: 'buy', quantity: 2, amount: -100, isin: null, ticker: 'AAPL' }),
+    ])
     const v = valuePortfolio(s, { AAPL: 75 })
     expect(v.positions[0]?.marketValue).toBeCloseTo(150)
   })
@@ -184,8 +186,8 @@ describe('allocationByAssetClass', () => {
   it('aggregates by asset class with a cash bucket, sorted by value', () => {
     const summary = reconstructPortfolio([
       tx({ type: 'deposit', amount: 5000, assetClass: 'cash', isin: null }),
-      tx({ type: 'buy', quantity: 10, price: 100, isin: 'IE00ETF', assetClass: 'etf' }),
-      tx({ type: 'buy', quantity: 1, price: 200, isin: 'BTCXXX', assetClass: 'crypto' }),
+      tx({ type: 'buy', quantity: 10, amount: -1000, isin: 'IE00ETF', assetClass: 'etf' }),
+      tx({ type: 'buy', quantity: 1, amount: -200, isin: 'BTCXXX', assetClass: 'crypto' }),
     ])
     const v = valuePortfolio(summary, { IE00ETF: 100, BTCXXX: 200 })
     // holdings: etf 1000, crypto 200; cash 3800; netWorth 5000
@@ -198,7 +200,7 @@ describe('allocationByAssetClass', () => {
   })
 
   it('buckets positions without an asset class as "other"', () => {
-    const s = reconstructPortfolio([tx({ type: 'buy', quantity: 1, price: 100, assetClass: null })])
+    const s = reconstructPortfolio([tx({ type: 'buy', quantity: 1, amount: -100, assetClass: null })])
     const v = valuePortfolio(s, { IE00TEST: 100 })
     const slices = allocationByAssetClass(v)
     expect(slices.some((sl) => sl.bucket === 'other')).toBe(true)
@@ -209,7 +211,7 @@ describe('totalReturn', () => {
   it('computes absolute and percentage return over net contributions', () => {
     const summary = reconstructPortfolio([
       tx({ type: 'deposit', amount: 1000, assetClass: 'cash', isin: null }),
-      tx({ type: 'buy', quantity: 10, price: 100, isin: 'IE00TEST' }),
+      tx({ type: 'buy', quantity: 10, amount: -1000, isin: 'IE00TEST' }),
     ])
     const v = valuePortfolio(summary, { IE00TEST: 130 })
     const r = totalReturn(v, summary)

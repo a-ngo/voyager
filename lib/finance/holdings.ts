@@ -103,11 +103,6 @@ function getPosition(map: Map<string, MutablePosition>, tx: LedgerTransaction): 
   return pos
 }
 
-/** Security value of a transaction: quantity × price, falling back to |amount|. */
-function securityValue(tx: LedgerTransaction, qty: number, amount: number): number {
-  return tx.price != null ? qty * tx.price : amount
-}
-
 export function reconstructPortfolio(transactions: LedgerTransaction[]): PortfolioSummary {
   const map = new Map<string, MutablePosition>()
   let cash = 0
@@ -124,72 +119,52 @@ export function reconstructPortfolio(transactions: LedgerTransaction[]): Portfol
       currencySet = true
     }
 
-    const amount = Math.abs(tx.amount ?? 0)
-    const feeAbs = Math.abs(tx.fee ?? 0)
-    const taxAbs = Math.abs(tx.tax ?? 0)
-    // Magnitude only — type carries the direction. Real exports sign sells as
-    // negative shares; this keeps buy/sell/reward math correct either way.
-    const qty = Math.abs(tx.quantity ?? 0)
+    // Use the broker's signs directly: inflows positive, outflows negative, fees
+    // and withholding tax negative. Cash always moves by the net amount the
+    // broker booked. Shares are signed too (negative on sells).
+    const amount = tx.amount ?? 0
+    const fee = tx.fee ?? 0
+    const tax = tx.tax ?? 0
+    const shares = tx.quantity ?? 0
 
-    switch (tx.type) {
-      case 'buy': {
-        const pos = getPosition(map, tx)
-        const cost = securityValue(tx, qty, amount) + feeAbs
-        pos.quantity += qty
-        pos.costBasis += cost
-        cash -= cost
-        fees += feeAbs
-        break
-      }
-      case 'sell': {
-        const pos = getPosition(map, tx)
+    cash += amount + fee + tax
+    if (fee < 0) fees += -fee
+
+    // Share movements: positions + cost basis (average cost, fees capitalized).
+    if (Math.abs(shares) > EPSILON) {
+      const pos = getPosition(map, tx)
+      if (shares > 0) {
+        // Acquisition — cost is the cash paid: -(amount + fee). Free shares → 0.
+        pos.quantity += shares
+        pos.costBasis += Math.max(0, -(amount + fee))
+      } else {
+        // Disposal — proceeds are the net cash received; realize gain vs avg cost.
+        const soldQty = -shares
         const avgCost = pos.quantity > EPSILON ? pos.costBasis / pos.quantity : 0
-        const proceeds = securityValue(tx, qty, amount) - feeAbs - taxAbs
-        const costOfSold = avgCost * qty
-        pos.quantity -= qty
+        const proceeds = amount + fee + tax
+        const costOfSold = avgCost * soldQty
+        pos.quantity += shares // shares < 0 → reduces the holding
         pos.costBasis -= costOfSold
         pos.realizedPnl += proceeds - costOfSold
         realizedPnl += proceeds - costOfSold
-        cash += proceeds
-        fees += feeAbs
-        break
       }
-      case 'reward': {
-        // STOCKPERK: free shares when a quantity is present; otherwise a cash reward.
-        if (qty > EPSILON) {
-          const pos = getPosition(map, tx)
-          pos.quantity += qty
-          pos.costBasis += securityValue(tx, qty, amount) // usually 0 for free shares
-        } else {
-          cash += amount
-          income += amount
-        }
+    }
+
+    // Reporting tallies (cash is already handled above).
+    switch (tx.type) {
+      case 'deposit':
+      case 'withdrawal':
+        netContributions += amount // deposit +, withdrawal − (already signed)
         break
-      }
       case 'dividend':
       case 'interest':
-      case 'tax_refund': {
-        cash += amount
-        income += amount
+      case 'tax_refund':
+        income += amount + tax
         break
-      }
-      case 'deposit': {
-        cash += amount
-        netContributions += amount
+      case 'reward':
+        if (Math.abs(shares) <= EPSILON) income += amount // cash bonus (free shares add no income)
         break
-      }
-      case 'withdrawal': {
-        cash -= amount
-        netContributions -= amount
-        break
-      }
-      case 'fee': {
-        cash -= amount
-        fees += amount
-        break
-      }
       default:
-        // Exhaustive over TransactionType; unhandled types are intentionally no-ops.
         break
     }
   }
