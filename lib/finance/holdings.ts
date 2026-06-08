@@ -21,6 +21,13 @@ import type { AssetClass, TransactionType } from '@/lib/import/types'
 
 const EPSILON = 1e-9
 
+/**
+ * Types that actually transact shares. Some brokers (Trade Republic) populate
+ * the `shares` column on dividend rows with the position size the dividend was
+ * paid on — those must not be mistaken for a free-share acquisition.
+ */
+const SHARE_MOVING_TYPES = new Set<TransactionType>(['buy', 'sell', 'reward'])
+
 /** Minimal transaction shape the engine needs. MappedTransaction is assignable to this. */
 export interface LedgerTransaction {
   type: TransactionType
@@ -131,7 +138,9 @@ export function reconstructPortfolio(transactions: LedgerTransaction[]): Portfol
     if (fee < 0) fees += -fee
 
     // Share movements: positions + cost basis (average cost, fees capitalized).
-    if (Math.abs(shares) > EPSILON) {
+    // Only for types that transact shares — a dividend's `shares` is the position
+    // it was paid on, not an acquisition (see SHARE_MOVING_TYPES).
+    if (SHARE_MOVING_TYPES.has(tx.type) && Math.abs(shares) > EPSILON) {
       const pos = getPosition(map, tx)
       if (shares > 0) {
         // Acquisition — cost is the cash paid: -(amount + fee). Free shares → 0.

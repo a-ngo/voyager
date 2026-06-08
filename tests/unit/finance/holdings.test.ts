@@ -129,6 +129,18 @@ describe('reconstructPortfolio', () => {
     expect(s.income).toBeCloseTo(8)
   })
 
+  it("ignores a dividend's shares (TR records the position size, not an acquisition)", () => {
+    const s = reconstructPortfolio([
+      tx({ type: 'buy', quantity: 10, price: 100, amount: -1000, isin: 'US67066G1040', assetClass: 'stock' }),
+      // TR puts the held quantity in `shares` on the dividend row — must not add shares.
+      tx({ type: 'dividend', quantity: 10, amount: 5, isin: 'US67066G1040', assetClass: 'stock' }),
+    ])
+    const pos = s.positions[0]
+    expect(pos?.quantity).toBeCloseTo(10) // 10, not 20
+    expect(pos?.costBasis).toBeCloseTo(1000)
+    expect(s.income).toBeCloseTo(5)
+  })
+
   it('adds free shares for a reward with a quantity at zero cost', () => {
     const s = reconstructPortfolio([
       tx({ type: 'reward', quantity: 1, isin: 'US0000REWARD', assetClass: 'stock' }),
