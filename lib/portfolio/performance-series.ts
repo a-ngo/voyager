@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db'
 import { priceCache } from '@/lib/db/schema'
 import { getTransactionsForUser } from '@/lib/db/transactions'
 import { resolveToSymbol } from '@/lib/prices/quotes'
-import { fetchStooqHistory } from '@/lib/prices/history'
+import { fetchYahooHistory } from '@/lib/prices/yahoo'
 import { fetchEcbEurRates } from '@/lib/prices/fx'
 import {
   monthlyDates,
@@ -16,8 +16,6 @@ import { toLedger } from './overview'
 
 export interface PerformanceSeries {
   hasData: boolean
-  /** Whether STOOQ_API_KEY is configured (history needs it). */
-  hasKey: boolean
   currency: string
   points: PerfPoint[]
   /** ISINs with no resolvable price history (excluded from value). */
@@ -26,7 +24,7 @@ export interface PerformanceSeries {
 
 type Db = ReturnType<typeof getDb>
 
-const HISTORY_SOURCE = 'stooq-hist'
+const HISTORY_SOURCE = 'yahoo-hist'
 
 function ymd(date: Date): string {
   return date.toISOString().slice(0, 10)
@@ -51,7 +49,7 @@ async function getMonthlyHistory(
 
   const stale = history.length === 0 || history[history.length - 1]!.date < ymdDaysAgo(40)
   if (stale) {
-    const fetched = await fetchStooqHistory(symbol, fromYmd, ymd(new Date()))
+    const fetched = await fetchYahooHistory(symbol, fromYmd, ymd(new Date()))
     if (fetched && fetched.length > 0) {
       await db
         .insert(priceCache)
@@ -83,15 +81,11 @@ async function getMonthlyHistory(
 }
 
 export async function getPerformanceSeries(userId: string): Promise<PerformanceSeries> {
-  const hasKey = !!process.env.STOOQ_API_KEY
   const db = getDb()
   const transactions = await getTransactionsForUser(userId)
 
   if (transactions.length === 0) {
-    return { hasData: false, hasKey, currency: 'EUR', points: [], missing: [] }
-  }
-  if (!hasKey) {
-    return { hasData: true, hasKey: false, currency: 'EUR', points: [], missing: [] }
+    return { hasData: false, currency: 'EUR', points: [], missing: [] }
   }
 
   const ledger = toLedger(transactions)
@@ -117,5 +111,5 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
   const rates = await fetchEcbEurRates()
   const points = valueOverTime(ledger, series, monthlyDates(first, ymd(new Date())), rates)
 
-  return { hasData: true, hasKey: true, currency: 'EUR', points, missing }
+  return { hasData: true, currency: 'EUR', points, missing }
 }

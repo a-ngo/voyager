@@ -4,7 +4,7 @@ import { selectCandidates, type FigiItem, type SymbolCandidate } from './figi-se
 export type { SymbolCandidate }
 
 /**
- * ISIN → candidate Stooq symbols via OpenFIGI (free; optional OPENFIGI_API_KEY
+ * ISIN → candidate Yahoo symbols via OpenFIGI (free; optional OPENFIGI_API_KEY
  * raises rate limits). Selection logic is pure and lives in figi-select.ts.
  */
 export async function openFigiCandidates(isin: string): Promise<SymbolCandidate[]> {

@@ -16,14 +16,14 @@ const tesla = [
 describe('selectCandidates', () => {
   it('prefers the German EUR listing for a DE-domiciled ISIN', () => {
     const c = selectCandidates('DE0007164600', sap)
-    expect(c[0]).toEqual({ stooq: 'sap.de', currency: 'EUR', name: 'SAP SE' })
+    expect(c[0]).toEqual({ yahoo: 'SAP.DE', currency: 'EUR', name: 'SAP SE' })
   })
 
   it('prefers the US listing for a US-domiciled ISIN, with EUR fallback', () => {
     const c = selectCandidates('US88160R1014', tesla)
-    expect(c[0]).toEqual({ stooq: 'tsla.us', currency: 'USD', name: 'TESLA INC' })
-    // German listing (tl0.de) offered as a later candidate
-    expect(c.some((x) => x.stooq === 'tl0.de' && x.currency === 'EUR')).toBe(true)
+    expect(c[0]).toEqual({ yahoo: 'TSLA', currency: 'USD', name: 'TESLA INC' })
+    // German listing (TL0.DE) offered as a later candidate
+    expect(c.some((x) => x.yahoo === 'TL0.DE' && x.currency === 'EUR')).toBe(true)
   })
 
   it('orders EUR listings first for an EU fund ISIN', () => {
@@ -32,13 +32,13 @@ describe('selectCandidates', () => {
       { exchCode: 'GY', ticker: 'VGWL', name: 'VANGUARD FTSE AW' },
     ]
     const c = selectCandidates('IE00B3RBWM25', etf)
-    expect(c[0]?.stooq).toBe('vgwl.de')
+    expect(c[0]?.yahoo).toBe('VGWL.DE')
     expect(c[0]?.currency).toBe('EUR')
   })
 
   it('de-duplicates and sanitizes class-share tickers', () => {
     const c = selectCandidates('US0000000000', [{ exchCode: 'UN', ticker: 'BRK/B', name: 'BERKSHIRE' }])
-    expect(c[0]?.stooq).toBe('brk-b.us')
+    expect(c[0]?.yahoo).toBe('BRK-B')
   })
 
   it('returns nothing when no exchange matches', () => {

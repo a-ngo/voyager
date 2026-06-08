@@ -1,30 +1,69 @@
 import { describe, expect, it } from 'vitest'
-import { parseStooqCsv } from '@/lib/prices/stooq'
+import { parseYahooQuote, parseYahooHistory } from '@/lib/prices/yahoo'
 import { toEur } from '@/lib/prices/fx'
 import { resolveSymbol, displayName } from '@/lib/prices/resolve'
 
-describe('parseStooqCsv', () => {
-  const header = 'Symbol,Date,Time,Open,High,Low,Close,Volume,Name'
+// 2026-06-04 17:00 UTC = 1780592400
+const quotePayload = {
+  chart: {
+    result: [
+      {
+        meta: {
+          currency: 'USD',
+          regularMarketPrice: 310.585,
+          regularMarketTime: 1780592400,
+          longName: 'Apple Inc.',
+          shortName: 'Apple',
+        },
+      },
+    ],
+  },
+}
 
-  it('parses the close, date, and name', () => {
-    const q = parseStooqCsv(
-      `${header}\nAAPL.US,2026-06-04,17:00:24,313,313,309,310.585,7528092,APPLE INC`,
-      'aapl.us',
-    )
-    expect(q).toEqual({ symbol: 'aapl.us', close: 310.585, date: '2026-06-04', name: 'APPLE INC' })
+describe('parseYahooQuote', () => {
+  it('parses the close, currency, date, and name', () => {
+    expect(parseYahooQuote(quotePayload, 'AAPL')).toEqual({
+      symbol: 'AAPL',
+      close: 310.585,
+      date: '2026-06-04',
+      currency: 'USD',
+      name: 'Apple Inc.',
+    })
   })
 
-  it('returns a null name when absent', () => {
-    const q = parseStooqCsv(`Symbol,Date,Time,Open,High,Low,Close,Volume\nAAPL.US,2026-06-04,17:00,1,1,1,310.585,1`, 'aapl.us')
-    expect(q?.name).toBeNull()
+  it('falls back to shortName when longName is absent', () => {
+    const meta = { currency: 'EUR', regularMarketPrice: 1, regularMarketTime: 1780592400, shortName: 'X' }
+    expect(parseYahooQuote({ chart: { result: [{ meta }] } }, 'X')?.name).toBe('X')
   })
 
-  it('returns null for N/D (unknown symbol)', () => {
-    expect(parseStooqCsv(`${header}\nXXX,N/D,N/D,N/D,N/D,N/D,N/D,N/D,N/D`, 'xxx')).toBeNull()
+  it('returns null when price or currency is missing', () => {
+    expect(parseYahooQuote({ chart: { result: [{ meta: { currency: 'USD' } }] } }, 'X')).toBeNull()
+    expect(parseYahooQuote({ chart: { result: [{ meta: { regularMarketPrice: 1 } }] } }, 'X')).toBeNull()
   })
 
   it('returns null for malformed input', () => {
-    expect(parseStooqCsv('garbage', 'x')).toBeNull()
+    expect(parseYahooQuote({}, 'x')).toBeNull()
+    expect(parseYahooQuote(null, 'x')).toBeNull()
+  })
+})
+
+describe('parseYahooHistory', () => {
+  it('pairs timestamps with closes, ascending, dropping nulls', () => {
+    const payload = {
+      chart: {
+        result: [
+          {
+            timestamp: [1780592400, 1777939200],
+            indicators: { quote: [{ close: [310.585, null] }] },
+          },
+        ],
+      },
+    }
+    expect(parseYahooHistory(payload)).toEqual([{ date: '2026-06-04', close: 310.585 }])
+  })
+
+  it('returns an empty array when history is absent', () => {
+    expect(parseYahooHistory({ chart: { result: [{ meta: {} }] } })).toEqual([])
   })
 })
 
@@ -51,12 +90,12 @@ describe('toEur', () => {
 describe('resolveSymbol', () => {
   it('resolves known ISINs with their quote currency and name', () => {
     expect(resolveSymbol('US0378331005')).toEqual({
-      stooq: 'aapl.us',
+      yahoo: 'AAPL',
       currency: 'USD',
       name: 'Apple',
     })
     expect(resolveSymbol('DE0008404005')).toEqual({
-      stooq: 'alv.de',
+      yahoo: 'ALV.DE',
       currency: 'EUR',
       name: 'Allianz',
     })

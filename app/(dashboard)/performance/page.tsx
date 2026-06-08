@@ -36,17 +36,6 @@ export default async function PerformancePage() {
             </Link>
           </CardContent>
         </Card>
-      ) : !series.hasKey ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Historical prices not configured</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted">
-            The value-over-time chart needs historical prices. Add a free{' '}
-            <code className="text-brand">STOOQ_API_KEY</code> to your environment to enable it (get
-            one at stooq.com), then reload.
-          </CardContent>
-        </Card>
       ) : (
         <Card>
           <CardHeader>
@@ -57,7 +46,7 @@ export default async function PerformancePage() {
               <PerformanceChart points={series.points} currency={series.currency} />
             </div>
             <p className="mt-3 text-xs text-faint">
-              Monthly closes · source Stooq · FX at current ECB rates.
+              Monthly closes · source Yahoo Finance · FX at current ECB rates.
               {series.missing.length > 0 &&
                 ` ${series.missing.length} holding(s) lacked price history and are excluded.`}{' '}
             </p>

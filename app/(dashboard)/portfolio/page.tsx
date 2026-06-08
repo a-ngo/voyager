@@ -171,7 +171,7 @@ export default async function PortfolioPage() {
       </Card>
 
       <p className="text-xs text-faint">
-        {o.asOf ? `Prices as of ${o.asOf} · ` : ''}source Stooq · FX ECB. Cost basis uses the
+        {o.asOf ? `Prices as of ${o.asOf} · ` : ''}source Yahoo Finance · FX ECB. Cost basis uses the
         average-cost method. Not financial advice.
       </p>
     </div>

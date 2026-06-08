@@ -20,7 +20,7 @@ Zod · Supabase (Postgres + Auth + RLS) · Drizzle · Anthropic Claude · Resend
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Supabase + Stooq / OpenFIGI / Anthropic keys
+cp .env.example .env.local   # fill in Supabase + OpenFIGI / Anthropic keys
 npm run dev                  # cloud Supabase → http://localhost:3000 (redirects to /dashboard)
 ```
 
@@ -63,7 +63,7 @@ cp .env.docker.example .env.docker         # then paste the values supabase star
 
 Map the `supabase start` output into `.env.docker`: **API URL** → `NEXT_PUBLIC_SUPABASE_URL`,
 **anon key** / **service_role key** → the two key vars, **DB URL** → `DATABASE_URL`. (The S3
-storage values aren't used.) Shared keys like `STOOQ_API_KEY` stay in `.env.local` and are
+storage values aren't used.) Shared keys like `OPENFIGI_API_KEY` stay in `.env.local` and are
 merged in automatically.
 
 ```bash
@@ -112,11 +112,12 @@ URL=http://localhost:3100/dashboard npm run screenshot
 ## Wired today
 
 - **Auth + persistence** — Supabase email/password, RLS, Drizzle; import persists to the DB.
-- **Live market value** — Stooq prices + ECB FX, ISIN→symbol via curated map → OpenFIGI auto-resolution.
+- **Live market value** — Yahoo Finance prices (keyless, covers EU-listed XETRA/Euronext holdings) + ECB FX, ISIN→symbol via curated map → OpenFIGI auto-resolution. Local-first: Yahoo 429s from Vercel/datacenter IPs.
 - **Real Portfolio, Transactions, Dashboard, Performance, and Settings pages** — no mock data left.
-- **Performance over time** — value vs. net invested, gated on a free `STOOQ_API_KEY`.
+- **Performance over time** — value vs. net invested, from Yahoo monthly history (keyless).
 
 ## Not yet wired
 
 - AI assistant endpoint (Claude), email alerts (Resend), manual transaction add/edit/delete.
 - Benchmark overlay (portfolio vs. MSCI World) and TWR/MWR metrics.
+- Instrument fundamentals & analyst data (Yahoo `quoteSummary`): key stats, price targets, ETF look-through.

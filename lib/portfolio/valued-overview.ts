@@ -97,12 +97,12 @@ export async function getValuedOverview(userId: string): Promise<ValuedOverview>
   const valued = valuePortfolio(summary, prices)
   const ret = totalReturn(valued, summary)
 
-  // Broker-provided names (from the import) take priority, then Stooq names.
-  const stooqNames = await getInstrumentNames([
+  // Broker-provided names (from the import) take priority, then resolved names.
+  const resolvedNames = await getInstrumentNames([
     ...summary.positions.map((p) => p.isin),
     ...transactions.map((t) => t.isin),
   ])
-  const names = { ...stooqNames, ...namesFromTransactions(transactions) }
+  const names = { ...resolvedNames, ...namesFromTransactions(transactions) }
 
   const positions: ValuedOverviewPosition[] = valued.positions
     .map((p) => ({

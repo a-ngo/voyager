@@ -1,24 +1,25 @@
 /**
- * ISIN → Stooq symbol resolution.
+ * ISIN → Yahoo Finance symbol resolution.
  *
  * For a personal portfolio (a handful of instruments) a curated map is far more
  * reliable than auto-resolving OpenFIGI's many listings per ISIN. Each entry
- * records the Stooq symbol and the currency that symbol quotes in (Stooq's CSV
- * does not return currency). Extend KNOWN as you add holdings; OpenFIGI-assisted
- * auto-resolution + DB-backed manual entries are a later upgrade.
+ * records the Yahoo symbol and the currency it quotes in (used as a fallback —
+ * Yahoo also returns the currency in its payload). Extend KNOWN as you add
+ * holdings; OpenFIGI-assisted auto-resolution + DB-backed manual entries are a
+ * later upgrade.
  */
 
 export interface ResolvedSymbol {
-  stooq: string
+  yahoo: string
   currency: string
   name: string
 }
 
 const KNOWN: Record<string, ResolvedSymbol> = {
-  IE00B4L5Y983: { stooq: 'iwda.uk', currency: 'GBP', name: 'iShares Core MSCI World' },
-  US0378331005: { stooq: 'aapl.us', currency: 'USD', name: 'Apple' },
-  US5949181045: { stooq: 'msft.us', currency: 'USD', name: 'Microsoft' },
-  DE0008404005: { stooq: 'alv.de', currency: 'EUR', name: 'Allianz' },
+  IE00B4L5Y983: { yahoo: 'IWDA.AS', currency: 'EUR', name: 'iShares Core MSCI World' },
+  US0378331005: { yahoo: 'AAPL', currency: 'USD', name: 'Apple' },
+  US5949181045: { yahoo: 'MSFT', currency: 'USD', name: 'Microsoft' },
+  DE0008404005: { yahoo: 'ALV.DE', currency: 'EUR', name: 'Allianz' },
 }
 
 export function resolveSymbol(isin: string | null): ResolvedSymbol | null {
@@ -41,25 +42,23 @@ export function displayName(
   return ticker ?? isin ?? '—'
 }
 
-/** Quote currency implied by a Stooq symbol's country suffix (e.g. `aapl.us` → USD). */
+/** Quote currency implied by a Yahoo symbol's exchange suffix (e.g. `ALV.DE` → EUR). */
 const SUFFIX_CURRENCY: Record<string, string> = {
-  us: 'USD',
-  uk: 'GBP',
-  de: 'EUR',
-  fr: 'EUR',
-  nl: 'EUR',
-  es: 'EUR',
-  it: 'EUR',
-  pt: 'EUR',
-  be: 'EUR',
-  at: 'EUR',
-  ie: 'EUR',
-  fi: 'EUR',
-  ch: 'CHF',
+  de: 'EUR', // XETRA
+  f: 'EUR', // Frankfurt
+  as: 'EUR', // Euronext Amsterdam
+  pa: 'EUR', // Euronext Paris
+  br: 'EUR', // Euronext Brussels
+  mi: 'EUR', // Borsa Italiana
+  mc: 'EUR', // Madrid
+  vi: 'EUR', // Vienna
+  l: 'GBP', // London
+  sw: 'CHF', // SIX Swiss
 }
 
+/** Yahoo US listings carry no suffix; a suffixed symbol maps via SUFFIX_CURRENCY. */
 export function currencyForSymbol(symbol: string): string | null {
   const dot = symbol.lastIndexOf('.')
-  if (dot < 0) return null
+  if (dot < 0) return 'USD'
   return SUFFIX_CURRENCY[symbol.slice(dot + 1).toLowerCase()] ?? null
 }

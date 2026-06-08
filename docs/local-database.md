@@ -13,7 +13,7 @@ code changes.
 
 `dev:local` loads `.env.docker` *before* Next starts, so its values take
 precedence over `.env.local`. The local file only holds the Supabase URL/keys +
-`DATABASE_URL`; shared keys (Stooq, OpenFIGI, Anthropic, …) stay in `.env.local`
+`DATABASE_URL`; shared keys (OpenFIGI, Anthropic, …) stay in `.env.local`
 and are merged in. So the same external keys work in both modes.
 
 The Drizzle data layer reads `DATABASE_URL` and doesn't care whether it points at

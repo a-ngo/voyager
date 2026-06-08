@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db'
 import { isinTickerMap, priceCache } from '@/lib/db/schema'
 import { currencyForSymbol, resolveSymbol } from './resolve'
 import { openFigiCandidates } from './openfigi'
-import { fetchStooqQuote } from './stooq'
+import { fetchYahooQuote } from './yahoo'
 import { fetchEcbEurRates, toEur } from './fx'
 
 const PRICE_TTL_MS = 60 * 60 * 1000 // 1h — current price freshness
@@ -22,11 +22,16 @@ type Db = ReturnType<typeof getDb>
 interface Quote {
   close: number
   date: string
+  currency: string
   name: string | null
 }
 
-/** Cache-first price for a Stooq symbol: read `price_cache` within TTL, else fetch + upsert. */
-async function fetchQuoteCached(db: Db, symbol: string, currency: string): Promise<Quote | null> {
+/**
+ * Cache-first price for a Yahoo symbol: read `price_cache` within TTL, else
+ * fetch + upsert. Yahoo returns the quote currency, so it is stored and returned
+ * rather than supplied by the caller.
+ */
+async function fetchQuoteCached(db: Db, symbol: string): Promise<Quote | null> {
   const [row] = await db
     .select()
     .from(priceCache)
@@ -35,21 +40,21 @@ async function fetchQuoteCached(db: Db, symbol: string, currency: string): Promi
     .limit(1)
 
   if (row?.close != null && Date.now() - new Date(row.fetchedAt).getTime() < PRICE_TTL_MS) {
-    return { close: Number(row.close), date: row.date, name: null }
+    return { close: Number(row.close), date: row.date, currency: row.currency ?? 'EUR', name: null }
   }
 
-  const q = await fetchStooqQuote(symbol)
+  const q = await fetchYahooQuote(symbol)
   if (!q) return null
 
   await db
     .insert(priceCache)
-    .values({ ticker: symbol, date: q.date, close: String(q.close), currency, source: 'stooq' })
+    .values({ ticker: symbol, date: q.date, close: String(q.close), currency: q.currency, source: 'yahoo' })
     .onConflictDoUpdate({
       target: [priceCache.ticker, priceCache.date],
-      set: { close: String(q.close), currency, source: 'stooq', fetchedAt: new Date().toISOString() },
+      set: { close: String(q.close), currency: q.currency, source: 'yahoo', fetchedAt: new Date().toISOString() },
     })
 
-  return { close: q.close, date: q.date, name: q.name }
+  return { close: q.close, date: q.date, currency: q.currency, name: q.name }
 }
 
 export interface ResolvedSymbol {
@@ -58,14 +63,14 @@ export interface ResolvedSymbol {
 }
 
 /**
- * Resolve an ISIN to a tradeable Stooq symbol: curated map → cached DB mapping →
- * OpenFIGI (each candidate validated against Stooq, the winner persisted to
+ * Resolve an ISIN to a tradeable Yahoo symbol: curated map → cached DB mapping →
+ * OpenFIGI (each candidate validated against Yahoo, the winner persisted to
  * isin_ticker_map). Shared by the current-price and historical-series paths so
  * both cover the same holdings.
  */
 export async function resolveToSymbol(isin: string): Promise<ResolvedSymbol | null> {
   const curated = resolveSymbol(isin)
-  if (curated) return { symbol: curated.stooq, currency: curated.currency }
+  if (curated) return { symbol: curated.yahoo, currency: curated.currency }
 
   const db = getDb()
   const [mapped] = await db
@@ -78,17 +83,17 @@ export async function resolveToSymbol(isin: string): Promise<ResolvedSymbol | nu
   }
 
   for (const candidate of await openFigiCandidates(isin)) {
-    const quote = await fetchQuoteCached(getDb(), candidate.stooq, candidate.currency)
+    const quote = await fetchQuoteCached(getDb(), candidate.yahoo)
     if (!quote) continue
     const name = quote.name ?? candidate.name
     await getDb()
       .insert(isinTickerMap)
-      .values({ isin, ticker: candidate.stooq, name, source: 'openfigi' })
+      .values({ isin, ticker: candidate.yahoo, name, source: 'openfigi' })
       .onConflictDoUpdate({
         target: isinTickerMap.isin,
-        set: { ticker: candidate.stooq, name, source: 'openfigi', resolvedAt: new Date().toISOString() },
+        set: { ticker: candidate.yahoo, name, source: 'openfigi', resolvedAt: new Date().toISOString() },
       })
-    return { symbol: candidate.stooq, currency: candidate.currency }
+    return { symbol: candidate.yahoo, currency: candidate.currency }
   }
 
   return null
@@ -114,12 +119,12 @@ export async function getEurPrices(items: { isin: string | null }[]): Promise<Eu
       unresolved.push(isin)
       continue
     }
-    const quote = await fetchQuoteCached(db, resolved.symbol, resolved.currency)
+    const quote = await fetchQuoteCached(db, resolved.symbol)
     if (!quote) {
       unresolved.push(isin)
       continue
     }
-    const eur = toEur(quote.close, resolved.currency, rates)
+    const eur = toEur(quote.close, quote.currency, rates)
     if (eur == null) {
       unresolved.push(isin)
       continue
