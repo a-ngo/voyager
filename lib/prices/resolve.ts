@@ -20,6 +20,9 @@ const KNOWN: Record<string, ResolvedSymbol> = {
   US0378331005: { yahoo: 'AAPL', currency: 'USD', name: 'Apple' },
   US5949181045: { yahoo: 'MSFT', currency: 'USD', name: 'Microsoft' },
   DE0008404005: { yahoo: 'ALV.DE', currency: 'EUR', name: 'Allianz' },
+  // GDR — OpenFIGI yields HXSCL (US OTC) and HY9H.DE (XETRA), neither on Yahoo.
+  // The receipt trades on the Frankfurt floor (HY9H.F, EUR).
+  US78392B1070: { yahoo: 'HY9H.F', currency: 'EUR', name: 'SK Hynix' },
 }
 
 export function resolveSymbol(isin: string | null): ResolvedSymbol | null {
