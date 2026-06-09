@@ -4,6 +4,7 @@ import {
   ComposedChart,
   Area,
   Line,
+  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,12 +27,15 @@ export function PerformanceChart({
   points,
   currency,
   benchmarks = [],
+  showTrades = false,
 }: {
   points: PerfPoint[]
   currency: string
   /** Overlaid benchmark lines. Each reads its own `key` from the data points
    * (merged in by the caller) and is plotted by Recharts via that dataKey. */
   benchmarks?: BenchmarkLine[]
+  /** Plot buy/sell markers from each point's `buyMarker`/`sellMarker` field. */
+  showTrades?: boolean
 }) {
   const fmtCompact = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -108,6 +112,12 @@ export function PerformanceChart({
             connectNulls
           />
         ))}
+        {showTrades && (
+          <Scatter dataKey="buyMarker" name="Buy" fill="#5b8c5a" shape="triangle" />
+        )}
+        {showTrades && (
+          <Scatter dataKey="sellMarker" name="Sell" fill="#c0584e" shape="cross" />
+        )}
       </ComposedChart>
     </ResponsiveContainer>
   )

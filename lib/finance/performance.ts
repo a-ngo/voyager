@@ -27,6 +27,21 @@ export interface PerfPoint {
   invested: number // EUR, net contributions to date
 }
 
+/** Buy/sell transaction counts per calendar month (`YYYY-MM`). */
+export function tradeCountsByMonth(
+  ledger: LedgerTransaction[],
+): Record<string, { buys: number; sells: number }> {
+  const out: Record<string, { buys: number; sells: number }> = {}
+  for (const t of ledger) {
+    if (t.type !== 'buy' && t.type !== 'sell') continue
+    const month = t.date.slice(0, 7)
+    const entry = (out[month] ??= { buys: 0, sells: 0 })
+    if (t.type === 'buy') entry.buys += 1
+    else entry.sells += 1
+  }
+  return out
+}
+
 /** Most recent close at or before `date` (forward-fill). */
 export function priceAt(points: PricePoint[], date: string): number | null {
   let close: number | null = null

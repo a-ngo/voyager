@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { monthlyDates, valueOverTime, type InstrumentSeries } from '@/lib/finance/performance'
+import {
+  monthlyDates,
+  tradeCountsByMonth,
+  valueOverTime,
+  type InstrumentSeries,
+} from '@/lib/finance/performance'
 import type { LedgerTransaction } from '@/lib/finance/holdings'
 
 function tx(o: Partial<LedgerTransaction>): LedgerTransaction {
@@ -18,6 +23,21 @@ function tx(o: Partial<LedgerTransaction>): LedgerTransaction {
     ...o,
   }
 }
+
+describe('tradeCountsByMonth', () => {
+  it('counts buys and sells per month, ignoring other types', () => {
+    const counts = tradeCountsByMonth([
+      tx({ type: 'buy', date: '2024-01-05' }),
+      tx({ type: 'buy', date: '2024-01-20' }),
+      tx({ type: 'sell', date: '2024-01-25' }),
+      tx({ type: 'dividend', date: '2024-01-28' }), // ignored
+      tx({ type: 'sell', date: '2024-03-10' }),
+    ])
+    expect(counts['2024-01']).toEqual({ buys: 2, sells: 1 })
+    expect(counts['2024-03']).toEqual({ buys: 0, sells: 1 })
+    expect(counts['2024-02']).toBeUndefined()
+  })
+})
 
 describe('monthlyDates', () => {
   it('emits month-ends, with today for the current month', () => {
