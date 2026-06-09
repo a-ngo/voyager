@@ -34,7 +34,7 @@ function ymdDaysAgo(days: number): string {
 }
 
 /** Monthly closes for a symbol: cached history (refetched when stale) + the current price. */
-async function getMonthlyHistory(
+export async function getMonthlyHistory(
   db: Db,
   symbol: string,
   currency: string,

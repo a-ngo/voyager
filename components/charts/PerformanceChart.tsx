@@ -14,13 +14,24 @@ import {
 import type { PerfPoint } from '@/lib/finance/performance'
 import { formatMoney } from '@/lib/utils/format'
 
+/** A benchmark overlay: read `points[].<key>`, label and colour the line. */
+export interface BenchmarkLine {
+  key: string
+  label: string
+  color: string
+}
+
 /** Portfolio value vs. net invested over time. Data passed in (presentational). */
 export function PerformanceChart({
   points,
   currency,
+  benchmarks = [],
 }: {
   points: PerfPoint[]
   currency: string
+  /** Overlaid benchmark lines. Each reads its own `key` from the data points
+   * (merged in by the caller) and is plotted by Recharts via that dataKey. */
+  benchmarks?: BenchmarkLine[]
 }) {
   const fmtCompact = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -85,6 +96,18 @@ export function PerformanceChart({
           strokeDasharray="4 3"
           dot={false}
         />
+        {benchmarks.map((b) => (
+          <Line
+            key={b.key}
+            type="monotone"
+            dataKey={b.key}
+            name={b.label}
+            stroke={b.color}
+            strokeWidth={1.75}
+            dot={false}
+            connectNulls
+          />
+        ))}
       </ComposedChart>
     </ResponsiveContainer>
   )

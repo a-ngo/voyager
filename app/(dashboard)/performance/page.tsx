@@ -4,7 +4,7 @@ import { Upload } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { PerformanceChart } from '@/components/charts/PerformanceChart'
+import { PerformanceWithBenchmark } from '@/components/portfolio/PerformanceWithBenchmark'
 import { createClient } from '@/lib/supabase/server'
 import { getPerformanceSeries } from '@/lib/portfolio/performance-series'
 
@@ -42,11 +42,10 @@ export default async function PerformancePage() {
             <CardTitle>Value over time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <PerformanceChart points={series.points} currency={series.currency} />
-            </div>
+            <PerformanceWithBenchmark points={series.points} currency={series.currency} />
             <p className="mt-3 text-xs text-faint">
-              Monthly closes · source Yahoo Finance · FX at current ECB rates.
+              Monthly closes · source Yahoo Finance · FX at current ECB rates. Benchmarks replay your
+              deposits into the chosen basket (buy-and-hold, EUR).
               {series.missing.length > 0 &&
                 ` ${series.missing.length} holding(s) lacked price history and are excluded.`}{' '}
             </p>

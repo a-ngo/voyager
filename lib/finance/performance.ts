@@ -28,7 +28,7 @@ export interface PerfPoint {
 }
 
 /** Most recent close at or before `date` (forward-fill). */
-function priceAt(points: PricePoint[], date: string): number | null {
+export function priceAt(points: PricePoint[], date: string): number | null {
   let close: number | null = null
   for (const p of points) {
     if (p.date <= date) close = p.close
