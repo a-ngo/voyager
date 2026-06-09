@@ -8,17 +8,16 @@ import { fetchYahooHistory } from '@/lib/prices/yahoo'
 import { fetchEcbEurRates } from '@/lib/prices/fx'
 import {
   monthlyDates,
-  tradeCountsByMonth,
+  netTradeFlowByMonth,
   valueOverTime,
   type InstrumentSeries,
   type PerfPoint,
 } from '@/lib/finance/performance'
 import { toLedger } from './overview'
 
-/** A monthly point plus how many buys/sells fell in that month (for markers). */
+/** A monthly point plus net € traded that month (+ buy / − sell), for markers. */
 export interface TradedPerfPoint extends PerfPoint {
-  buys: number
-  sells: number
+  tradeFlow: number
 }
 
 export interface PerformanceSeries {
@@ -118,11 +117,11 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
   const rates = await fetchEcbEurRates()
   const points = valueOverTime(ledger, series, monthlyDates(first, ymd(new Date())), rates)
 
-  // Tag each monthly point with the buys/sells that fell in its month.
-  const counts = tradeCountsByMonth(ledger)
+  // Tag each monthly point with the net € traded in its month.
+  const flow = netTradeFlowByMonth(ledger)
   const traded: TradedPerfPoint[] = points.map((p) => ({
     ...p,
-    ...(counts[p.date.slice(0, 7)] ?? { buys: 0, sells: 0 }),
+    tradeFlow: flow[p.date.slice(0, 7)] ?? 0,
   }))
 
   return { hasData: true, currency: 'EUR', points: traded, missing }

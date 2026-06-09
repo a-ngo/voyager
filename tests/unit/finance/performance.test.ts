@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   monthlyDates,
-  tradeCountsByMonth,
+  netTradeFlowByMonth,
   valueOverTime,
   type InstrumentSeries,
 } from '@/lib/finance/performance'
@@ -24,18 +24,18 @@ function tx(o: Partial<LedgerTransaction>): LedgerTransaction {
   }
 }
 
-describe('tradeCountsByMonth', () => {
-  it('counts buys and sells per month, ignoring other types', () => {
-    const counts = tradeCountsByMonth([
-      tx({ type: 'buy', date: '2024-01-05' }),
-      tx({ type: 'buy', date: '2024-01-20' }),
-      tx({ type: 'sell', date: '2024-01-25' }),
-      tx({ type: 'dividend', date: '2024-01-28' }), // ignored
-      tx({ type: 'sell', date: '2024-03-10' }),
+describe('netTradeFlowByMonth', () => {
+  it('nets buy spend against sell proceeds per month, ignoring other types', () => {
+    const flow = netTradeFlowByMonth([
+      tx({ type: 'buy', date: '2024-01-05', amount: -1000 }),
+      tx({ type: 'buy', date: '2024-01-20', amount: -500 }),
+      tx({ type: 'sell', date: '2024-01-25', amount: 400 }),
+      tx({ type: 'dividend', date: '2024-01-28', amount: 50 }), // ignored
+      tx({ type: 'sell', date: '2024-03-10', amount: 2000 }),
     ])
-    expect(counts['2024-01']).toEqual({ buys: 2, sells: 1 })
-    expect(counts['2024-03']).toEqual({ buys: 0, sells: 1 })
-    expect(counts['2024-02']).toBeUndefined()
+    expect(flow['2024-01']).toBeCloseTo(1100) // 1000 + 500 spent − 400 received → net buyer
+    expect(flow['2024-03']).toBeCloseTo(-2000) // net seller
+    expect(flow['2024-02']).toBeUndefined()
   })
 })
 

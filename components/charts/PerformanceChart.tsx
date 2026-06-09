@@ -7,6 +7,7 @@ import {
   Scatter,
   XAxis,
   YAxis,
+  ZAxis,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -80,7 +81,13 @@ export function PerformanceChart({
             color: 'var(--color-foreground)',
           }}
           labelFormatter={(d) => fmtMonth(String(d))}
-          formatter={(value: number, name: string) => [formatMoney(value, currency), name]}
+          formatter={(value: number, name: string, item: { payload?: { tradeFlow?: number } }) => {
+            // Markers sit at portfolio value; show the actual net € traded instead.
+            if (name === 'Net buy' || name === 'Net sell') {
+              return [formatMoney(Math.abs(item.payload?.tradeFlow ?? 0), currency), name]
+            }
+            return [formatMoney(value, currency), name]
+          }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
         <Area
@@ -112,12 +119,9 @@ export function PerformanceChart({
             connectNulls
           />
         ))}
-        {showTrades && (
-          <Scatter dataKey="buyMarker" name="Buy" fill="#5b8c5a" shape="triangle" />
-        )}
-        {showTrades && (
-          <Scatter dataKey="sellMarker" name="Sell" fill="#c0584e" shape="cross" />
-        )}
+        {showTrades && <ZAxis dataKey="tradeMag" range={[40, 500]} />}
+        {showTrades && <Scatter dataKey="buyMarker" name="Net buy" fill="#5b8c5a" shape="circle" />}
+        {showTrades && <Scatter dataKey="sellMarker" name="Net sell" fill="#c0584e" shape="circle" />}
       </ComposedChart>
     </ResponsiveContainer>
   )

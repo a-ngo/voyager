@@ -27,17 +27,18 @@ export interface PerfPoint {
   invested: number // EUR, net contributions to date
 }
 
-/** Buy/sell transaction counts per calendar month (`YYYY-MM`). */
-export function tradeCountsByMonth(
-  ledger: LedgerTransaction[],
-): Record<string, { buys: number; sells: number }> {
-  const out: Record<string, { buys: number; sells: number }> = {}
+/**
+ * Net € traded per calendar month (`YYYY-MM`): money spent on buys minus
+ * proceeds from sells. Positive = net buying, negative = net selling. Uses the
+ * signed `amount` (buys negative, sells positive), so the month's net is
+ * −Σ amount over its buy/sell rows.
+ */
+export function netTradeFlowByMonth(ledger: LedgerTransaction[]): Record<string, number> {
+  const out: Record<string, number> = {}
   for (const t of ledger) {
     if (t.type !== 'buy' && t.type !== 'sell') continue
     const month = t.date.slice(0, 7)
-    const entry = (out[month] ??= { buys: 0, sells: 0 })
-    if (t.type === 'buy') entry.buys += 1
-    else entry.sells += 1
+    out[month] = (out[month] ?? 0) - (t.amount ?? 0)
   }
   return out
 }

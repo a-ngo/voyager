@@ -34,9 +34,12 @@ function windowCutoff(w: TimeWindow): string | null {
   return d.toISOString().slice(0, 10)
 }
 
-type ChartRow = PerfPoint & { buyMarker?: number; sellMarker?: number } & Partial<
-    Record<`bench_${string}`, number>
-  >
+type ChartRow = PerfPoint & {
+  buyMarker?: number
+  sellMarker?: number
+  tradeMag?: number
+  tradeFlow?: number
+} & Partial<Record<`bench_${string}`, number>>
 
 /**
  * Performance chart with alternative-reality benchmark overlays, a time-window
@@ -109,9 +112,13 @@ export function PerformanceWithBenchmark({
   const merged: ChartRow[] = windowed.map((p) => {
     const row: ChartRow = { date: p.date, value: p.value, invested: p.invested }
     for (const [id, m] of dateMaps) row[`bench_${id}`] = m.get(p.date)
-    if (showTrades) {
-      if (p.buys > 0) row.buyMarker = p.value
-      if (p.sells > 0) row.sellMarker = p.value
+    if (showTrades && Math.abs(p.tradeFlow) >= 0.01) {
+      // One marker per month: green when a net buyer, red when a net seller;
+      // size (tradeMag) scales with the net € traded.
+      row.tradeFlow = p.tradeFlow
+      row.tradeMag = Math.abs(p.tradeFlow)
+      if (p.tradeFlow > 0) row.buyMarker = p.value
+      else row.sellMarker = p.value
     }
     return row
   })
@@ -195,7 +202,7 @@ export function PerformanceWithBenchmark({
               : 'rounded-full border border-border px-2.5 py-0.5 text-xs text-muted hover:text-foreground'
           }
         >
-          {showTrades ? '● ' : '○ '}Buy / sell markers
+          {showTrades ? '● ' : '○ '}Net buy / sell
         </button>
       </div>
 
