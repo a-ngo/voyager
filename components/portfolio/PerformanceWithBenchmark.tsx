@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { PerformanceChart, type BenchmarkLine } from '@/components/charts/PerformanceChart'
 import { BENCHMARKS } from '@/lib/finance/benchmark'
@@ -12,6 +12,8 @@ import type { PerfPoint } from '@/lib/finance/performance'
  * line is server-rendered (passed in); any number of benchmarks can be toggled
  * on, each fetched independently and overlaid without refetching the portfolio.
  */
+const STORAGE_KEY = 'voyager.performance.benchmarks'
+
 export function PerformanceWithBenchmark({
   points,
   currency,
@@ -20,6 +22,27 @@ export function PerformanceWithBenchmark({
   currency: string
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restore the selection on mount (client only, to avoid an SSR mismatch);
+  // persist it so toggles survive navigation and reloads.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      const ids = raw ? (JSON.parse(raw) as unknown) : null
+      if (Array.isArray(ids)) {
+        setSelected(new Set(ids.filter((id) => BENCHMARKS.some((b) => b.id === id))))
+      }
+    } catch {
+      // Corrupt state — start empty.
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...selected]))
+  }, [selected, hydrated])
 
   // Stable order (registry order) so query slots and colours stay consistent.
   const selectedIds = BENCHMARKS.filter((b) => selected.has(b.id)).map((b) => b.id)
