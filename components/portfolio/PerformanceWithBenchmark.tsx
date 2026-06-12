@@ -5,6 +5,11 @@ import { useQueries } from '@tanstack/react-query'
 import { PerformanceChart, type BenchmarkLine } from '@/components/charts/PerformanceChart'
 import { MonthTradesDialog } from '@/components/portfolio/MonthTradesDialog'
 import { BENCHMARKS } from '@/lib/finance/benchmark'
+import {
+  cashflowsFromSeries,
+  moneyWeightedReturn,
+  timeWeightedReturn,
+} from '@/lib/finance/returns'
 import type { BenchmarkSeries } from '@/lib/portfolio/benchmark-series'
 import type { TradeDetail, TradedPerfPoint } from '@/lib/portfolio/performance-series'
 import type { PerfPoint } from '@/lib/finance/performance'
@@ -109,6 +114,23 @@ export function PerformanceWithBenchmark({
   const cutoff = windowCutoff(timeWindow)
   const windowed = cutoff ? points.filter((p) => p.date >= cutoff) : points
 
+  // Returns over the selected window. TWR neutralizes contribution timing
+  // (benchmark-comparable); MWR is the investor's actual IRR.
+  const valueSeries = windowed.map((p) => ({ date: p.date, value: p.value, invested: p.invested }))
+  const twr = timeWeightedReturn(valueSeries)
+  const mwr = moneyWeightedReturn(cashflowsFromSeries(valueSeries))
+  const pct = (f: number) => `${f >= 0 ? '+' : ''}${(f * 100).toFixed(1)}%`
+
+  // Each benchmark's TWR over the same window — same contribution baseline, so
+  // it's directly comparable to yours (and equals the index's own return).
+  const benchmarkTwr = BENCHMARKS.filter((b) => seriesById.has(b.id)).map((b) => {
+    const byDate = new Map(seriesById.get(b.id)!.points.map((p) => [p.date, p.benchmark]))
+    const series = windowed
+      .map((p) => ({ date: p.date, value: byDate.get(p.date), invested: p.invested }))
+      .filter((p): p is { date: string; value: number; invested: number } => p.value != null)
+    return { id: b.id, label: b.label, color: b.color, twr: timeWeightedReturn(series) }
+  })
+
   const dateMaps = [...seriesById].map(
     ([id, s]) => [id, new Map(s.points.map((p) => [p.date, p.benchmark]))] as const,
   )
@@ -208,6 +230,50 @@ export function PerformanceWithBenchmark({
         >
           {showTrades ? '● ' : '○ '}Net buy / sell
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
+        <div title="Compound growth rate over the window, ignoring when you added money — comparable across strategies.">
+          <p className="text-[10px] uppercase tracking-widest text-faint">
+            Time-weighted return · ann.
+          </p>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+            <span>
+              <span className="text-xs text-muted">You </span>
+              <span
+                className={
+                  twr
+                    ? twr.annualized >= 0
+                      ? 'font-semibold text-positive'
+                      : 'font-semibold text-negative'
+                    : 'text-muted'
+                }
+              >
+                {twr ? pct(twr.annualized) : '—'}
+              </span>
+              {twr && <span className="ml-1 text-xs text-muted">({pct(twr.cumulative)} total)</span>}
+            </span>
+            {benchmarkTwr.map((b) => (
+              <span key={b.id} style={{ color: b.color }}>
+                <span className="text-xs opacity-80">{b.label} </span>
+                {b.twr ? pct(b.twr.annualized) : '—'}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div title="Your actual internal rate of return, which accounts for when you added or withdrew money.">
+          <p className="text-[10px] uppercase tracking-widest text-faint">Money-weighted · ann.</p>
+          <p className="mt-0.5 text-sm">
+            <span
+              className={
+                mwr != null ? (mwr >= 0 ? 'text-positive' : 'text-negative') : 'text-muted'
+              }
+            >
+              {mwr != null ? pct(mwr) : '—'}
+            </span>
+          </p>
+        </div>
       </div>
 
       <div className="h-80">
