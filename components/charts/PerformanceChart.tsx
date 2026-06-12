@@ -29,6 +29,7 @@ export function PerformanceChart({
   currency,
   benchmarks = [],
   showTrades = false,
+  onMonthClick,
 }: {
   points: PerfPoint[]
   currency: string
@@ -37,6 +38,8 @@ export function PerformanceChart({
   benchmarks?: BenchmarkLine[]
   /** Plot buy/sell markers from each point's `buyMarker`/`sellMarker` field. */
   showTrades?: boolean
+  /** Called with the clicked point's date (YYYY-MM-DD) when a month is clicked. */
+  onMonthClick?: (date: string) => void
 }) {
   const fmtCompact = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -49,7 +52,15 @@ export function PerformanceChart({
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart data={points} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+      <ComposedChart
+        data={points}
+        margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+        onClick={(state: { activeLabel?: string | number }) => {
+          const label = state?.activeLabel
+          if (label != null && onMonthClick) onMonthClick(String(label))
+        }}
+        style={onMonthClick ? { cursor: 'pointer' } : undefined}
+      >
         <defs>
           <linearGradient id="valueFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#c2613f" stopOpacity={0.3} />

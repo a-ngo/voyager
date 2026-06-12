@@ -42,7 +42,11 @@ export default async function PerformancePage() {
             <CardTitle>Value over time</CardTitle>
           </CardHeader>
           <CardContent>
-            <PerformanceWithBenchmark points={series.points} currency={series.currency} />
+            <PerformanceWithBenchmark
+              points={series.points}
+              currency={series.currency}
+              trades={series.trades}
+            />
             <p className="mt-3 text-xs text-faint">
               Monthly closes · source Yahoo Finance · FX at current ECB rates. Benchmarks replay your
               deposits into the chosen basket (buy-and-hold, EUR).

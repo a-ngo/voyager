@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { PerformanceChart, type BenchmarkLine } from '@/components/charts/PerformanceChart'
+import { MonthTradesDialog } from '@/components/portfolio/MonthTradesDialog'
 import { BENCHMARKS } from '@/lib/finance/benchmark'
 import type { BenchmarkSeries } from '@/lib/portfolio/benchmark-series'
-import type { TradedPerfPoint } from '@/lib/portfolio/performance-series'
+import type { TradeDetail, TradedPerfPoint } from '@/lib/portfolio/performance-series'
 import type { PerfPoint } from '@/lib/finance/performance'
 
 type TimeWindow = 'ytd' | '1y' | '3y' | 'all'
@@ -50,13 +51,16 @@ type ChartRow = PerfPoint & {
 export function PerformanceWithBenchmark({
   points,
   currency,
+  trades,
 }: {
   points: TradedPerfPoint[]
   currency: string
+  trades: TradeDetail[]
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('all')
   const [showTrades, setShowTrades] = useState(false)
+  const [openMonth, setOpenMonth] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -212,8 +216,17 @@ export function PerformanceWithBenchmark({
           currency={currency}
           benchmarks={benchmarkLines}
           showTrades={showTrades}
+          onMonthClick={(date) => setOpenMonth(date.slice(0, 7))}
         />
       </div>
+      <p className="text-xs text-faint">Click a month to see its trades.</p>
+
+      <MonthTradesDialog
+        month={openMonth}
+        trades={trades}
+        currency={currency}
+        onClose={() => setOpenMonth(null)}
+      />
     </div>
   )
 }

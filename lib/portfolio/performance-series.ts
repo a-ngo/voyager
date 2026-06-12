@@ -20,10 +20,23 @@ export interface TradedPerfPoint extends PerfPoint {
   tradeFlow: number
 }
 
+/** One buy/sell, for the per-month drill-down. */
+export interface TradeDetail {
+  date: string
+  type: 'buy' | 'sell'
+  name: string | null
+  isin: string | null
+  quantity: number | null
+  price: number | null
+  amount: number | null
+}
+
 export interface PerformanceSeries {
   hasData: boolean
   currency: string
   points: TradedPerfPoint[]
+  /** Every buy/sell, for the click-a-month trade list. */
+  trades: TradeDetail[]
   /** ISINs with no resolvable price history (excluded from value). */
   missing: string[]
 }
@@ -91,8 +104,21 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
   const transactions = await getTransactionsForUser(userId)
 
   if (transactions.length === 0) {
-    return { hasData: false, currency: 'EUR', points: [], missing: [] }
+    return { hasData: false, currency: 'EUR', points: [], trades: [], missing: [] }
   }
+
+  const num = (s: string | null) => (s == null ? null : Number(s))
+  const trades: TradeDetail[] = transactions
+    .filter((t) => t.type === 'buy' || t.type === 'sell')
+    .map((t) => ({
+      date: t.date,
+      type: t.type as 'buy' | 'sell',
+      name: t.name ?? null,
+      isin: t.isin,
+      quantity: num(t.quantity),
+      price: num(t.price),
+      amount: num(t.amount),
+    }))
 
   const ledger = toLedger(transactions)
   const first = transactions[0]!.date
@@ -124,5 +150,5 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
     tradeFlow: flow[p.date.slice(0, 7)] ?? 0,
   }))
 
-  return { hasData: true, currency: 'EUR', points: traded, missing }
+  return { hasData: true, currency: 'EUR', points: traded, trades, missing }
 }
