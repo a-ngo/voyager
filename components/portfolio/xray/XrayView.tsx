@@ -1,13 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatMoney } from '@/lib/utils/format'
 import { useXray } from '@/hooks/useXray'
 import type { Breakdown } from '@/lib/finance/xray'
+import { HoldingDetailDialog } from '@/components/portfolio/HoldingDetailDialog'
 import { BarList } from './BarList'
 
 export function XrayView() {
   const { data, isLoading, isError } = useXray()
+  const [openHolding, setOpenHolding] = useState<{ symbol: string; name: string } | null>(null)
 
   if (isLoading)
     return (
@@ -127,25 +130,39 @@ export function XrayView() {
               </tr>
             </thead>
             <tbody>
-              {data.topHoldings.map((h, i) => (
-                <tr key={h.symbol ?? h.name} className="border-t border-border/50">
-                  <td className="px-1 py-1.5 text-muted">{i + 1}</td>
-                  <td className="px-1 py-1.5 text-foreground">{h.name}</td>
-                  <td className="px-1 py-1.5 text-muted">{h.sector ?? '—'}</td>
-                  <td className={`px-1 py-1.5 ${viaClass[h.via]}`}>{viaLabel[h.via]}</td>
-                  <td className="px-1 py-1.5 text-right tabular-nums text-muted">
-                    {h.weight.toFixed(2)}%
-                  </td>
-                  <td className="px-1 py-1.5 text-right tabular-nums">
-                    {formatMoney(h.value, currency)}
-                  </td>
-                </tr>
-              ))}
+              {data.topHoldings.map((h, i) => {
+                const clickable = !!h.symbol
+                return (
+                  <tr
+                    key={h.symbol ?? h.name}
+                    className={
+                      clickable
+                        ? 'cursor-pointer border-t border-border/50 hover:bg-panel-elevated'
+                        : 'border-t border-border/50'
+                    }
+                    onClick={
+                      clickable ? () => setOpenHolding({ symbol: h.symbol!, name: h.name }) : undefined
+                    }
+                  >
+                    <td className="px-1 py-1.5 text-muted">{i + 1}</td>
+                    <td className="px-1 py-1.5 text-foreground">{h.name}</td>
+                    <td className="px-1 py-1.5 text-muted">{h.sector ?? '—'}</td>
+                    <td className={`px-1 py-1.5 ${viaClass[h.via]}`}>{viaLabel[h.via]}</td>
+                    <td className="px-1 py-1.5 text-right tabular-nums text-muted">
+                      {h.weight.toFixed(2)}%
+                    </td>
+                    <td className="px-1 py-1.5 text-right tabular-nums">
+                      {formatMoney(h.value, currency)}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
           <p className="mt-3 text-xs text-faint">
-            Funds are looked through to their top holdings (≈ top 10 each), so weights don’t sum to
-            100% — the fund long tail isn’t itemized.
+            Click a holding for fundamentals + analyst data. Funds are looked through to their top
+            holdings (≈ top 10 each), so weights don’t sum to 100% — the fund long tail isn’t
+            itemized.
           </p>
         </CardContent>
       </Card>
@@ -178,6 +195,12 @@ export function XrayView() {
         and currency are derived from the largest underlying holdings, so they carry a coverage
         figure. Not financial advice.
       </p>
+
+      <HoldingDetailDialog
+        symbol={openHolding?.symbol ?? null}
+        name={openHolding?.name}
+        onClose={() => setOpenHolding(null)}
+      />
     </div>
   )
 }

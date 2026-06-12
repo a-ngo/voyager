@@ -99,3 +99,124 @@ export async function fetchInstrumentProfile(symbol: string): Promise<Instrument
   profileCache.set(symbol, { profile, at: Date.now() })
   return profile
 }
+
+export interface RecommendationTrend {
+  period: string
+  strongBuy: number
+  buy: number
+  hold: number
+  sell: number
+  strongSell: number
+}
+
+/** Per-instrument fundamentals + analyst data for the holding detail view. */
+export interface InstrumentDetail {
+  symbol: string
+  name: string | null
+  currency: string | null
+  price: number | null
+  sector: string | null
+  industry: string | null
+  country: string | null
+  summary: string | null
+  marketCap: number | null
+  trailingPE: number | null
+  forwardPE: number | null
+  dividendYield: number | null // fraction
+  beta: number | null
+  fiftyTwoWeekLow: number | null
+  fiftyTwoWeekHigh: number | null
+  eps: number | null
+  profitMargin: number | null // fraction
+  returnOnEquity: number | null // fraction
+  targetLow: number | null
+  targetMean: number | null
+  targetHigh: number | null
+  recommendationKey: string | null
+  numberOfAnalysts: number | null
+  recommendationTrend: RecommendationTrend[]
+}
+
+const detailCache = new Map<string, { detail: InstrumentDetail | null; at: number }>()
+const DETAIL_TTL_MS = 60 * 60 * 1000
+
+function rawNum(v: unknown): number | null {
+  if (typeof v === 'number') return v
+  if (v && typeof v === 'object' && 'raw' in v) {
+    const r = (v as { raw?: unknown }).raw
+    return typeof r === 'number' ? r : null
+  }
+  return null
+}
+function str(v: unknown): string | null {
+  return typeof v === 'string' && v.length > 0 ? v : null
+}
+
+/** Fetch + cache fundamentals/analyst detail for one Yahoo symbol. */
+export async function fetchInstrumentDetail(symbol: string): Promise<InstrumentDetail | null> {
+  const cached = detailCache.get(symbol)
+  if (cached && Date.now() - cached.at < DETAIL_TTL_MS) return cached.detail
+
+  const a = await getAuth()
+  if (!a) return null
+
+  const url =
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}` +
+    `?modules=price,summaryDetail,defaultKeyStatistics,financialData,recommendationTrend,assetProfile` +
+    `&crumb=${encodeURIComponent(a.crumb)}`
+
+  let detail: InstrumentDetail | null = null
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA, Cookie: a.cookie } })
+    if (res.ok) {
+      const r = (await res.json() as SummaryResponse).quoteSummary?.result?.[0]
+      if (r) {
+        const price = (r.price ?? {}) as Record<string, unknown>
+        const sd = (r.summaryDetail ?? {}) as Record<string, unknown>
+        const ks = (r.defaultKeyStatistics ?? {}) as Record<string, unknown>
+        const fd = (r.financialData ?? {}) as Record<string, unknown>
+        const ap = (r.assetProfile ?? {}) as Record<string, unknown>
+        const trend = ((r.recommendationTrend ?? {}) as { trend?: RecommendationTrend[] }).trend ?? []
+
+        detail = {
+          symbol,
+          name: str(price.longName) ?? str(price.shortName),
+          currency: str(price.currency),
+          price: rawNum(price.regularMarketPrice),
+          sector: str(ap.sector),
+          industry: str(ap.industry),
+          country: str(ap.country),
+          summary: str(ap.longBusinessSummary),
+          marketCap: rawNum(sd.marketCap) ?? rawNum(ks.enterpriseValue),
+          trailingPE: rawNum(sd.trailingPE),
+          forwardPE: rawNum(sd.forwardPE),
+          dividendYield: rawNum(sd.dividendYield),
+          beta: rawNum(sd.beta) ?? rawNum(ks.beta),
+          fiftyTwoWeekLow: rawNum(sd.fiftyTwoWeekLow),
+          fiftyTwoWeekHigh: rawNum(sd.fiftyTwoWeekHigh),
+          eps: rawNum(ks.trailingEps),
+          profitMargin: rawNum(fd.profitMargins) ?? rawNum(ks.profitMargins),
+          returnOnEquity: rawNum(fd.returnOnEquity),
+          targetLow: rawNum(fd.targetLowPrice),
+          targetMean: rawNum(fd.targetMeanPrice),
+          targetHigh: rawNum(fd.targetHighPrice),
+          recommendationKey: str(fd.recommendationKey),
+          numberOfAnalysts: rawNum(fd.numberOfAnalystOpinions),
+          recommendationTrend: trend.slice(0, 1).map((t) => ({
+            period: t.period,
+            strongBuy: t.strongBuy ?? 0,
+            buy: t.buy ?? 0,
+            hold: t.hold ?? 0,
+            sell: t.sell ?? 0,
+            strongSell: t.strongSell ?? 0,
+          })),
+        }
+      }
+    }
+  } catch {
+    detail = null
+  }
+
+  detailCache.set(symbol, { detail, at: Date.now() })
+  return detail
+}
