@@ -2,19 +2,91 @@
 
 > To the moon and beyond. AI-powered portfolio intelligence.
 
-Voyager tracks investment portfolios, visualizes allocations, benchmarks against references
-(e.g. MSCI World), surfaces rebalancing alerts, and adds a conversational AI layer.
+Voyager is a private, self-hostable portfolio tracker. Import a broker CSV and it reconstructs
+your holdings from the transaction ledger, prices them in EUR, charts performance against
+real benchmarks, looks through your funds to the underlying companies, and pulls per-instrument
+fundamentals and analyst data. Built to run for free on Vercel + Supabase.
 
-![Voyager dashboard](./docs/dashboard.png)
+![Voyager dashboard](./docs/screens/dashboard.png)
 
-*The composable dashboard: total return + net-worth goal KPIs, a portfolio-vs-MSCI World
-performance chart, current-vs-target allocation drift, and an allocation breakdown — all
-drag/resize widgets from the registry. (Mock data shown.)*
+*The composable dashboard: all-time return and net-worth-goal KPIs, a portfolio-vs-MSCI World
+performance chart, current-vs-target allocation drift, and an allocation breakdown — drag/resize
+widgets from the registry. All screenshots in this README use a synthetic 3-year sample portfolio.*
+
+## Features
+
+Some examples:
+
+<details>
+<summary><b>Portfolio overview</b> — holdings, cost basis, allocation, and ledger, reconstructed from transactions</summary>
+
+<br>
+
+Net worth, market value, unrealized/realized P/L, net contributions, and income — all derived
+from the transaction ledger (no stored snapshots). Allocation pie by market value, per-position
+cost basis vs. live price, and the recent-transactions ledger.
+
+![Portfolio page](./docs/screens/portfolio.png)
+
+</details>
+
+<details>
+<summary><b>Performance</b> — TWR / MWR, benchmark overlays, and buy/sell markers over time</summary>
+
+<br>
+
+Value vs. net invested over a selectable window (YTD / 1Y / 3Y / All). Time-weighted and
+money-weighted returns recompute per window. Overlay your own contributions replayed into
+MSCI All-World, 70/30 World+EM, S&P 500, or Nasdaq-100. Net buy/sell month markers, click a
+month to drill into that month's trades.
+
+![Performance page](./docs/screens/performance.png)
+
+</details>
+
+<details>
+<summary><b>X-Ray</b> — fund look-through into sectors, countries, currency, and real holdings</summary>
+
+<br>
+
+Looks through ETFs via Yahoo `quoteSummary` into true sector allocation, top-20 look-through
+holdings (each tagged with its company sector), country and currency exposure, direct-vs-fund
+overlap, and concentration stats.
+
+![X-Ray page](./docs/screens/xray.png)
+
+</details>
+
+<details>
+<summary><b>Holding detail</b> — fundamentals and analyst data per instrument</summary>
+
+<br>
+
+Click a holding in the X-Ray top-20 for P/E, market cap, beta, dividend yield, margins, ROE,
+52-week range, analyst price targets (low/mean/high), buy/hold/sell consensus, and a business
+summary. Verified on both US and EU listings.
+
+![Holding detail dialog](./docs/screens/holding-detail.png)
+
+</details>
+
+<details>
+<summary><b>Trade Republic CSV import</b> — PII-stripped, idempotent, server-side only</summary>
+
+<br>
+
+Semicolon CSV parser with a hard column allowlist (counterparty name/IBAN/payment reference are
+stripped before anything is stored), Zod validation, TR→Voyager type mapping, and content-derived
+deduplication so re-importing a cumulative export is a no-op. Upload at `/import`; processed
+entirely server-side, never logged beyond counts.
+
+</details>
 
 ## Stack
 
-Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS v4 · Recharts · react-grid-layout ·
-Zod · Supabase (Postgres + Auth + RLS) · Drizzle · Anthropic Claude · Resend · Vercel.
+Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui · Recharts ·
+react-grid-layout · TanStack Query · Zod · Supabase (Postgres + Auth + RLS) · Drizzle ·
+Anthropic Claude · Resend · Vercel.
 
 ## Getting started
 
@@ -71,26 +143,9 @@ npm run dev:local            # http://localhost:3000, against the local stack
 ```
 
 Sign up at `/signup`; confirmation emails are caught locally by Inbucket at
-http://localhost:54324, and you can browse tables in Supabase Studio at http://localhost:54323.
+<http://localhost:54324>, and you can browse tables in Supabase Studio at <http://localhost:54323>.
 Local and cloud are separate databases (separate accounts, no sync). `supabase stop` shuts the
 stack down. More detail in [`docs/local-database.md`](./docs/local-database.md).
-
-## What's in this skeleton
-
-- **App shell** — sidebar driven entirely by `components/shared/nav-config.ts` (navigation as data),
-  collapsible. Warm, editorial theme (Inter + Newsreader) with a light/dark toggle (dark default).
-- **Dashboard widget system** — `components/widgets/registry.ts` is the single source of truth.
-  Drag/resize grid (`react-grid-layout`), edit/view modes, widget picker. Layout persists to
-  `localStorage` as a stand-in until the Supabase tables are wired. Five widgets ship today:
-  Total Return, **Net Worth Goal**, Performance Chart (**Portfolio vs MSCI World**),
-  **Target vs Current** allocation drift, and Allocation Pie.
-- **Trade Republic CSV import** — `lib/import/trade-republic/` (pure, unit-tested):
-  semicolon CSV parser, **PII hard-strip via column allowlist**, Zod validation, TR→Voyager type
-  mapping, idempotent orchestration. Upload UI at `/import`, API at
-  `app/api/import/trade-republic/route.ts`.
-- **Finance math** — `lib/finance/drift.ts` (pure functions, exhaustively testable).
-- **Database** — `supabase/migrations/0001_init.sql` defines the transaction-ledger schema with
-  **RLS on every user-scoped table** and the `(user_id, broker, external_id)` dedup constraint.
 
 ### Importing your Trade Republic history
 
@@ -100,24 +155,32 @@ anything is stored, and re-importing the same file is idempotent. A realistic 3-
 `tests/fixtures/trade-republic-3y-portfolio.csv`; regenerate or tweak it with
 `node scripts/gen-sample-csv.mjs`.
 
-### Regenerating the dashboard screenshot
+### Regenerating the README screenshots
 
-`docs/dashboard.png` is captured with Playwright (Chromium). With the app running:
+`docs/screens/*.png` are captured from the synthetic sample portfolio with Playwright. The
+script creates a confirmed demo user (service-role admin API), logs in, imports the fixture
+CSV, then screenshots each page. With the app running:
 
 ```bash
-npm run build && npx next start -p 3100 &   # or: npm run dev (port 3000)
-URL=http://localhost:3100/dashboard npm run screenshot
+npm run dev                                       # http://localhost:3000
+URL=http://localhost:3000 node scripts/capture-screenshots.mjs
 ```
+
+It writes `dashboard`, `portfolio`, `performance`, `xray`, and `holding-detail` PNGs into
+`docs/screens/`. Override the demo account with `DEMO_EMAIL` / `DEMO_PASSWORD`.
 
 ## Wired today
 
-- **Auth + persistence** — Supabase email/password, RLS, Drizzle; import persists to the DB.
+- **Auth + persistence** — Supabase email/password, RLS on every table, Drizzle; import persists to the DB.
 - **Live market value** — Yahoo Finance prices (keyless, covers EU-listed XETRA/Euronext holdings) + ECB FX, ISIN→symbol via curated map → OpenFIGI auto-resolution. Local-first: Yahoo 429s from Vercel/datacenter IPs.
-- **Real Portfolio, Transactions, Dashboard, Performance, and Settings pages** — no mock data left.
-- **Performance over time** — value vs. net invested, from Yahoo monthly history (keyless).
+- **Real Portfolio, Transactions, Dashboard, Performance, X-Ray, and Settings pages** — no mock data.
+- **Performance analytics** — value vs. net invested from Yahoo monthly history, TWR/MWR per window, and contribution-replay benchmark overlays (MSCI All-World, 70/30, S&P 500, Nasdaq-100).
+- **X-Ray look-through + holding fundamentals** — sector/country/currency exposure, top holdings, overlap; per-instrument key stats and analyst targets via Yahoo `quoteSummary`.
 
 ## Not yet wired
 
-- AI assistant endpoint (Claude), email alerts (Resend), manual transaction add/edit/delete.
-- Benchmark overlay (portfolio vs. MSCI World) and TWR/MWR metrics.
-- Instrument fundamentals & analyst data (Yahoo `quoteSummary`): key stats, price targets, ETF look-through.
+- AI assistant endpoint (Claude, streaming, tool-based) — the data layer that would feed it is in place.
+- Rebalancing drift alerts and monthly digest email (Resend).
+- Manual transaction add/edit/delete (the ledger is read-only today).
+- Layout/config persistence to Supabase (dashboard layout still in `localStorage`).
+- Additional broker imports (Scalable, ING, DKB).
