@@ -88,6 +88,44 @@ Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui �
 react-grid-layout · TanStack Query · Zod · Supabase (Postgres + Auth + RLS) · Drizzle ·
 Anthropic Claude · Resend · Vercel.
 
+## Folder structure
+
+```
+voyager/
+├── app/
+│   ├── (auth)/
+│   ├── (dashboard)/
+│   │   └── page.tsx              # Dashboard widget grid
+│   └── api/
+│       ├── prices/               # Yahoo Finance proxy — never call from client
+│       ├── import/trade-republic/
+│       ├── dashboard/            # Widget layout persistence
+│       └── ai/                   # Claude API — server only
+├── components/
+│   ├── ui/                       # shadcn/ui — do not hand-edit
+│   ├── charts/
+│   ├── widgets/
+│   │   ├── registry.ts           # ONLY place to register widgets
+│   │   ├── WidgetShell.tsx       # Shared chrome: header, resize, remove
+│   │   ├── WidgetPicker.tsx      # Add-widget UI
+│   │   └── <category>/           # Widget implementations
+│   └── shared/
+│       └── nav-config.ts         # Navigation as data — sidebar derives from this
+├── lib/
+│   ├── db/                       # Drizzle schema + queries
+│   ├── finance/                  # Pure financial math (TWR, MWR, drift, etc.)
+│   ├── prices/                   # Yahoo Finance adapter + rate limiter
+│   ├── import/                   # Broker CSV parsers
+│   │   └── trade-republic/       # schema.ts, type-map.ts, importer.ts
+│   ├── ai/                       # Claude client + context builder
+│   └── validators/               # Zod schemas — one per domain entity
+├── hooks/
+├── types/
+├── supabase/migrations/          # Append-only — never edit after creation
+└── tests/
+    └── fixtures/                 # Anonymized synthetic CSVs — no real PII ever
+```
+
 ## Getting started
 
 ```bash
@@ -155,29 +193,7 @@ anything is stored, and re-importing the same file is idempotent. A realistic 3-
 `tests/fixtures/trade-republic-3y-portfolio.csv`; regenerate or tweak it with
 `node scripts/gen-sample-csv.mjs`.
 
-### Regenerating the README screenshots
-
-`docs/screens/*.png` are captured from the synthetic sample portfolio with Playwright. The
-script creates a confirmed demo user (service-role admin API), logs in, imports the fixture
-CSV, then screenshots each page. With the app running:
-
-```bash
-npm run dev                                       # http://localhost:3000
-URL=http://localhost:3000 node scripts/capture-screenshots.mjs
-```
-
-It writes `dashboard`, `portfolio`, `performance`, `xray`, and `holding-detail` PNGs into
-`docs/screens/`. Override the demo account with `DEMO_EMAIL` / `DEMO_PASSWORD`.
-
-## Wired today
-
-- **Auth + persistence** — Supabase email/password, RLS on every table, Drizzle; import persists to the DB.
-- **Live market value** — Yahoo Finance prices (keyless, covers EU-listed XETRA/Euronext holdings) + ECB FX, ISIN→symbol via curated map → OpenFIGI auto-resolution. Local-first: Yahoo 429s from Vercel/datacenter IPs.
-- **Real Portfolio, Transactions, Dashboard, Performance, X-Ray, and Settings pages** — no mock data.
-- **Performance analytics** — value vs. net invested from Yahoo monthly history, TWR/MWR per window, and contribution-replay benchmark overlays (MSCI All-World, 70/30, S&P 500, Nasdaq-100).
-- **X-Ray look-through + holding fundamentals** — sector/country/currency exposure, top holdings, overlap; per-instrument key stats and analyst targets via Yahoo `quoteSummary`.
-
-## Not yet wired
+## Open TODOs
 
 - AI assistant endpoint (Claude, streaming, tool-based) — the data layer that would feed it is in place.
 - Rebalancing drift alerts and monthly digest email (Resend).
