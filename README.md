@@ -73,6 +73,18 @@ summary. Verified on both US and EU listings.
 </details>
 
 <details>
+<summary><b>News</b> — market, economic, and company headlines (personalized feed coming)</summary>
+
+<br>
+
+A `/news` page with two tabs. **General** is live: keyless RSS (Google News business / markets /
+central-bank topics), parsed, deduped, recency-sorted, and cached server-side. **For You** is a
+placeholder for the personalized feed — news ranked to your holdings, sectors, and the macro
+topics that move your portfolio, filtered by your selected AI model (local = free and private).
+
+</details>
+
+<details>
 <summary><b>AI assistant</b> — chat about your portfolio; pick Claude or a local model</summary>
 
 <br>
@@ -221,6 +233,7 @@ isn't at the default `http://localhost:11434/v1`. Adding a provider or model is 
 ## Open TODOs
 
 - AI assistant: prompt caching is deferred until the prompt prefix is large enough to cache (see `lib/ai/system.ts`). The eval harness is in `tests/ai/` (`npm run eval`).
+- News "For You" feed — personalized, portfolio-ranked headlines (the General tab is live today).
 - Rebalancing drift alerts and monthly digest email (Resend).
 - Manual transaction add/edit/delete (the ledger is read-only today).
 - Layout/config persistence to Supabase (dashboard layout still in `localStorage`).
