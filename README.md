@@ -13,7 +13,8 @@ model. Built to run for free on Vercel + Supabase.
 
 *The composable dashboard: all-time return and net-worth-goal KPIs, a portfolio-vs-MSCI World
 performance chart, current-vs-target allocation drift, and an allocation breakdown — drag/resize
-widgets from the registry. All screenshots in this README use a synthetic 3-year sample portfolio.*
+widgets from the registry. All screenshots use a synthetic 3-year sample portfolio in the Ion theme
+(one of five — see Themes below).*
 
 ## Features
 
@@ -85,7 +86,7 @@ adding one is a single palette block.
 </details>
 
 <details>
-<summary><b>News</b> — market, economic, and company headlines (personalized feed coming)</summary>
+<summary><b>News</b> — general headlines plus a feed personalized to your portfolio</summary>
 
 <br>
 
@@ -108,7 +109,8 @@ X-Ray, performance, holding detail), so its figures come from your real data rat
 guessed summary. Pick the model from a dropdown: Claude or DeepSeek (hosted), or a local model
 via Ollama (Qwen3, Mistral, Llama) where your financial data never leaves your machine. The selected model
 is validated server-side against an allowlist, and every model call is session-checked and
-rate-limited.
+rate-limited. Conversations persist (sidebar to start, switch, or delete them) and long threads are
+summarized to stay within the model's context.
 
 </details>
 
@@ -190,6 +192,8 @@ editor, sign up at `/signup`, and import a CSV at `/import`.
 | `npm run lint` | ESLint (`next lint`) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test` | Vitest unit tests |
+| `npm run eval` | AI assistant eval harness (needs a model; see `tests/ai/`) |
+| `npm run screenshot` | Capture a README screenshot in the Ion theme (set `URL`/`OUT`/`WAIT`) |
 
 ### Cloud or local database
 
