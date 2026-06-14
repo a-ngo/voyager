@@ -77,10 +77,11 @@ summary. Verified on both US and EU listings.
 
 <br>
 
-A `/news` page with two tabs. **General** is live: keyless RSS (Google News business / markets /
-central-bank topics), parsed, deduped, recency-sorted, and cached server-side. **For You** is a
-placeholder for the personalized feed — news ranked to your holdings, sectors, and the macro
-topics that move your portfolio, filtered by your selected AI model (local = free and private).
+A `/news` page with two tabs, both keyless and server-cached. **General**: Google News business /
+markets / central-bank topics, parsed, deduped, recency-sorted. **For You**: news pulled from your
+holdings (per-symbol), sectors (from the X-Ray), and macro topics, then ranked by your selected AI
+model — which only orders the real headlines, never invents them — with a recency fallback when no
+model is available. Run the ranking on a local model and it stays free and private.
 
 </details>
 
@@ -233,7 +234,7 @@ isn't at the default `http://localhost:11434/v1`. Adding a provider or model is 
 ## Open TODOs
 
 - AI assistant: prompt caching is deferred until the prompt prefix is large enough to cache (see `lib/ai/system.ts`). The eval harness is in `tests/ai/` (`npm run eval`).
-- News "For You" feed — personalized, portfolio-ranked headlines (the General tab is live today).
+- News: cron pre-warm for the feeds (today they fetch on first request and cache ~30 min).
 - Rebalancing drift alerts and monthly digest email (Resend).
 - Manual transaction add/edit/delete (the ledger is read-only today).
 - Layout/config persistence to Supabase (dashboard layout still in `localStorage`).

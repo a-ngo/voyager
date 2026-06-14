@@ -24,7 +24,8 @@ const MAX_ITEMS = 40
 
 let cache: { at: number; items: NewsItem[] } | null = null
 
-async function fetchFeed(url: string): Promise<NewsItem[]> {
+/** Fetch + parse one RSS feed; fails soft to []. Shared with the personal feed. */
+export async function fetchFeed(url: string): Promise<NewsItem[]> {
   try {
     const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) })
     if (!res.ok) return []
