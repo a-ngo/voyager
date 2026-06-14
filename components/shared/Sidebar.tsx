@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Rocket, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { NAV_ITEMS, NAV_GROUP_LABELS, type NavItem } from './nav-config'
-import { ThemeToggle } from './ThemeToggle'
+import { ThemePicker } from './ThemePicker'
 import { signout } from '@/app/(auth)/actions'
 import { cn } from '@/lib/utils/cn'
 
@@ -124,7 +124,7 @@ export function Sidebar() {
       </nav>
 
       <div className="flex flex-col gap-0.5 border-t border-border px-2 py-2">
-        <ThemeToggle collapsed={collapsed} />
+        <ThemePicker collapsed={collapsed} />
         <form action={signout}>
           <button
             type="submit"

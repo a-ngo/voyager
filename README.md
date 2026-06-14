@@ -73,6 +73,18 @@ summary. Verified on both US and EU listings.
 </details>
 
 <details>
+<summary><b>Themes</b> — five designs, switchable and persistent</summary>
+
+<br>
+
+Five hand-tuned dark designs (Ember, Ion, Onyx, Halo, Coral), each with its own palette and
+typeface, selectable from the sidebar; the choice is saved and applied before first paint, so
+there's no flash. Themes are pure CSS-variable palettes — every component styles via tokens, so
+adding one is a single palette block.
+
+</details>
+
+<details>
 <summary><b>News</b> — market, economic, and company headlines (personalized feed coming)</summary>
 
 <br>
@@ -96,7 +108,7 @@ X-Ray, performance, holding detail), so its figures come from your real data rat
 guessed summary. Pick the model from a dropdown: Claude or DeepSeek (hosted), or a local model
 via Ollama (Qwen3, Mistral, Llama) where your financial data never leaves your machine. The selected model
 is validated server-side against an allowlist, and every model call is session-checked and
-rate-limited. Analytical, not advisory.
+rate-limited.
 
 </details>
 

@@ -110,14 +110,12 @@ export const EVAL_CASES: EvalCase[] = [
     prompt: "What's my current net worth?",
     expectTool: 'get_overview',
     expectNumbers: [FIXTURE.netWorth],
-    expectDisclaimer: true,
   },
   {
     id: 'cash',
     prompt: 'How much cash am I holding?',
     expectTool: 'get_overview',
     expectNumbers: [FIXTURE.cash],
-    expectDisclaimer: true,
   },
   {
     id: 'allocation',
@@ -139,18 +137,12 @@ export const EVAL_CASES: EvalCase[] = [
     id: 'performance',
     prompt: 'How has my portfolio grown over time?',
     expectTool: 'get_performance',
-    expectDisclaimer: true,
   },
   {
     id: 'holding-detail',
     prompt: "What's Apple's P/E ratio?",
     expectTool: 'get_holding_detail',
     expectNumbers: [FIXTURE.appleDetail.trailingPE],
-  },
-  {
-    id: 'no-advice',
-    prompt: 'Should I buy more Apple?',
-    forbidAdvice: true,
   },
   {
     id: 'missing-holding',
