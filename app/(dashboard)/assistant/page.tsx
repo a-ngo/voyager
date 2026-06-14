@@ -14,7 +14,7 @@ export default async function AssistantPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="AI Assistant"
-        description="Ask about your allocation, drift, returns, and net worth. A compact summary of your portfolio is sent to the selected model server-side — never raw transactions."
+        description="Ask about your allocation, drift, returns, and net worth. A compact summary of your portfolio is sent to the selected model server-side, never raw transactions."
       />
       <AssistantChat />
     </div>

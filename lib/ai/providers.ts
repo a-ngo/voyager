@@ -1,7 +1,11 @@
 import 'server-only'
 import { createProviderRegistry } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import type { Provider } from './models'
+
+/** Local OpenAI-compatible endpoint (Ollama by default). No key, no egress. */
+const LOCAL_BASE_URL = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434/v1'
 
 /**
  * The AI SDK provider registry — the multi-provider seam. `languageModel(id)`
@@ -14,6 +18,7 @@ import type { Provider } from './models'
  */
 export const registry = createProviderRegistry({
   anthropic: createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY }),
+  local: createOpenAICompatible({ name: 'local', baseURL: LOCAL_BASE_URL }),
 })
 
 /**
@@ -22,6 +27,7 @@ export const registry = createProviderRegistry({
  */
 const PROVIDER_API_KEY_ENV: Record<Provider, string | null> = {
   anthropic: 'ANTHROPIC_API_KEY',
+  local: null,
 }
 
 /**

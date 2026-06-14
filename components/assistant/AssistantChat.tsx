@@ -117,8 +117,6 @@ export function AssistantChat() {
             {busy ? 'Thinking…' : 'Send'}
           </Button>
         </form>
-
-        <p className="text-xs text-muted">Analytical, not advisory. Not financial advice.</p>
       </CardContent>
     </Card>
   )

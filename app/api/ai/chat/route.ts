@@ -98,5 +98,8 @@ function streamErrorMessage(error: unknown, meta: ModelMeta): string {
       return `Rate limited by ${meta.sendsDataTo ?? 'the model'}. Wait a moment and try again.`
     }
   }
+  if (meta.local) {
+    return `Couldn't reach the local model. Make sure Ollama is running (\`ollama serve\`) and the model is pulled (\`ollama pull ${meta.model}\`).`
+  }
   return 'The assistant hit an error. Please try again.'
 }

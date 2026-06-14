@@ -11,8 +11,8 @@
  * providers.ts. The server-side allowlist and the UI both derive from this.
  */
 
-// Widen this union as providers are added (e.g. 'anthropic' | 'deepseek' | 'local').
-export type Provider = 'anthropic'
+// Widen this union as providers are added (e.g. add 'deepseek').
+export type Provider = 'anthropic' | 'local'
 
 export interface ModelMeta {
   /** Display label for the dropdown. */
@@ -37,6 +37,51 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: 'Anthropic',
     local: false,
+  },
+  // Local via Ollama (OpenAI-compatible at localhost:11434). The model tag's own
+  // colon (e.g. `qwen3:14b`) is preserved — the registry splits on the first colon
+  // only. Each must be pulled first (`ollama pull <model>`). All support tool
+  // calling, but less reliably than hosted models — see §8 capability gating.
+  // Footprints are ~Q4 and assume a 24 GB Mac running the dev server alongside.
+  'local:qwen3:14b': {
+    label: 'Qwen3 14B (local)', // recommended local default — best tool use that fits comfortably (~9 GB)
+    provider: 'local',
+    model: 'qwen3:14b',
+    supportsTools: true,
+    sendsDataTo: null,
+    local: true,
+  },
+  'local:qwen3:30b-a3b': {
+    label: 'Qwen3 30B-A3B (local)', // MoE, ~3B active → fast; ~17 GB, tight alongside dev server
+    provider: 'local',
+    model: 'qwen3:30b-a3b',
+    supportsTools: true,
+    sendsDataTo: null,
+    local: true,
+  },
+  'local:qwen2.5:14b': {
+    label: 'Qwen2.5 14B (local)', // prior-gen, solid fallback (~9 GB)
+    provider: 'local',
+    model: 'qwen2.5:14b',
+    supportsTools: true,
+    sendsDataTo: null,
+    local: true,
+  },
+  'local:mistral-small3.2:24b': {
+    label: 'Mistral Small 3.2 (local)', // strong instruction-follower (~14 GB, tighter/slower)
+    provider: 'local',
+    model: 'mistral-small3.2:24b',
+    supportsTools: true,
+    sendsDataTo: null,
+    local: true,
+  },
+  'local:llama3.1:8b': {
+    label: 'Llama 3.1 8B (local)', // lightest/fastest (~5 GB), weakest tool reliability
+    provider: 'local',
+    model: 'llama3.1:8b',
+    supportsTools: true,
+    sendsDataTo: null,
+    local: true,
   },
 } as const satisfies Record<string, ModelMeta>
 

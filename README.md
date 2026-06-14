@@ -5,7 +5,9 @@
 Voyager is a private, self-hostable portfolio tracker. Import a broker CSV and it reconstructs
 your holdings from the transaction ledger, prices them in EUR, charts performance against
 real benchmarks, looks through your funds to the underlying companies, and pulls per-instrument
-fundamentals and analyst data. Built to run for free on Vercel + Supabase.
+fundamentals and analyst data. A built-in assistant answers questions about your portfolio by
+calling those same functions as tools, with a model picker that runs Claude or a fully local
+model. Built to run for free on Vercel + Supabase.
 
 ![Voyager dashboard](./docs/screens/dashboard.png)
 
@@ -71,6 +73,21 @@ summary. Verified on both US and EU listings.
 </details>
 
 <details>
+<summary><b>AI assistant</b> — chat about your portfolio; pick Claude or a local model</summary>
+
+<br>
+
+Ask about allocation, drift, returns, or a specific holding. The assistant is a thin tool-use
+layer over the same tested functions the rest of the app uses (overview, allocation drift,
+X-Ray, performance, holding detail), so its figures come from your real data rather than a
+guessed summary. Pick the model from a dropdown: Claude (hosted) or a local model via Ollama
+(Qwen3, Mistral, Llama) where your financial data never leaves your machine. The selected model
+is validated server-side against an allowlist, and every model call is session-checked and
+rate-limited. Analytical, not advisory.
+
+</details>
+
+<details>
 <summary><b>Trade Republic CSV import</b> — PII-stripped, idempotent, server-side only</summary>
 
 <br>
@@ -86,7 +103,7 @@ entirely server-side, never logged beyond counts.
 
 Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui · Recharts ·
 react-grid-layout · TanStack Query · Zod · Supabase (Postgres + Auth + RLS) · Drizzle ·
-Anthropic Claude · Resend · Vercel.
+Vercel AI SDK (Anthropic Claude + local models via Ollama) · Resend · Vercel.
 
 ## Folder structure
 
@@ -100,7 +117,7 @@ voyager/
 │       ├── prices/               # Yahoo Finance proxy — never call from client
 │       ├── import/trade-republic/
 │       ├── dashboard/            # Widget layout persistence
-│       └── ai/                   # Claude API — server only
+│       └── ai/chat/              # AI assistant chat (multi-provider) — server only
 ├── components/
 │   ├── ui/                       # shadcn/ui — do not hand-edit
 │   ├── charts/
@@ -117,7 +134,7 @@ voyager/
 │   ├── prices/                   # Yahoo Finance adapter + rate limiter
 │   ├── import/                   # Broker CSV parsers
 │   │   └── trade-republic/       # schema.ts, type-map.ts, importer.ts
-│   ├── ai/                       # Claude client + context builder
+│   ├── ai/                       # Provider registry, model catalog, tools
 │   └── validators/               # Zod schemas — one per domain entity
 ├── hooks/
 ├── types/
@@ -193,9 +210,17 @@ anything is stored, and re-importing the same file is idempotent. A realistic 3-
 `tests/fixtures/trade-republic-3y-portfolio.csv`; regenerate or tweak it with
 `node scripts/gen-sample-csv.mjs`.
 
+### Using the assistant
+
+Open `/assistant` and pick a model. Claude needs `ANTHROPIC_API_KEY` in your env. The local
+options need [Ollama](https://ollama.com) running (`ollama serve`) with the model pulled
+(e.g. `ollama pull qwen3:14b`) and keep your data on your machine; set `OLLAMA_BASE_URL` if it
+isn't at the default `http://localhost:11434/v1`. Adding a provider or model is one entry in
+`lib/ai/models.ts` (plus a line in `lib/ai/providers.ts` for a new provider).
+
 ## Open TODOs
 
-- AI assistant endpoint (Claude, streaming, tool-based) — the data layer that would feed it is in place.
+- AI assistant follow-ups: conversation persistence, prompt caching, an eval harness, and a DeepSeek provider.
 - Rebalancing drift alerts and monthly digest email (Resend).
 - Manual transaction add/edit/delete (the ledger is read-only today).
 - Layout/config persistence to Supabase (dashboard layout still in `localStorage`).
