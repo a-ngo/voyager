@@ -1,12 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatMoney } from '@/lib/utils/format'
 import { useXray } from '@/hooks/useXray'
 import type { Breakdown } from '@/lib/finance/xray'
 import { HoldingDetailDialog } from '@/components/portfolio/HoldingDetailDialog'
 import { BarList } from './BarList'
+
+// Client-only — bundles the world topojson; keep it out of SSR (like the charts).
+const WorldAllocationMap = dynamic(
+  () => import('./WorldAllocationMap').then((m) => m.WorldAllocationMap),
+  { ssr: false },
+)
 
 export function XrayView() {
   const { data, isLoading, isError } = useXray()
@@ -67,6 +74,18 @@ export function XrayView() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">
+            Geographic allocation{' '}
+            <span className="text-xs font-normal text-faint">{coverage(data.countries)}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WorldAllocationMap slices={data.countries.slices} coverage={data.countries.coverage} />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -88,6 +107,18 @@ export function XrayView() {
           </CardHeader>
           <CardContent>
             <BarList slices={data.countries.slices} currency={currency} max={10} color="#6f94a6" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">
+              Regions{' '}
+              <span className="text-xs font-normal text-faint">{coverage(data.regions)}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarList slices={data.regions.slices} currency={currency} max={6} color="#c98a3c" />
           </CardContent>
         </Card>
 

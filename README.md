@@ -52,8 +52,8 @@ month to drill into that month's trades.
 <br>
 
 Looks through ETFs via Yahoo `quoteSummary` into true sector allocation, top-20 look-through
-holdings (each tagged with its company sector), country and currency exposure, direct-vs-fund
-overlap, and concentration stats.
+holdings (each tagged with its company sector), country and currency exposure, a world map and
+region/continent breakdown, direct-vs-fund overlap, and concentration stats.
 
 ![X-Ray page](./docs/screens/xray.png)
 

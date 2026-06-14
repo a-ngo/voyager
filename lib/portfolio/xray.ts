@@ -6,6 +6,7 @@ import {
   countryAllocation,
   currencyExposure,
   lookThroughHoldings,
+  regionAllocation,
   sectorAllocation,
   type Breakdown,
   type Concentration,
@@ -23,6 +24,7 @@ export interface XrayData {
   assetMix: OverviewSlice[]
   sectors: Breakdown
   countries: Breakdown
+  regions: Breakdown
   currencies: Breakdown
   topHoldings: LookThroughHolding[]
   overlaps: LookThroughHolding[]
@@ -50,6 +52,7 @@ export async function getXray(userId: string): Promise<XrayData> {
       assetMix: o.allocation,
       sectors: EMPTY,
       countries: EMPTY,
+      regions: EMPTY,
       currencies: EMPTY,
       topHoldings: [],
       overlaps: [],
@@ -99,6 +102,7 @@ export async function getXray(userId: string): Promise<XrayData> {
   }
 
   const countries = countryAllocation(holdings, countryBySymbol, total)
+  const regions = regionAllocation(countries, total)
   const currencies = currencyExposure(countries, total)
 
   return {
@@ -108,6 +112,7 @@ export async function getXray(userId: string): Promise<XrayData> {
     assetMix: o.allocation,
     sectors,
     countries,
+    regions,
     currencies,
     topHoldings: holdings.slice(0, 20).map((h) => ({
       ...h,

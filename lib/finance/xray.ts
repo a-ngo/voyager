@@ -1,4 +1,5 @@
 import type { AssetClass } from '@/lib/import/types'
+import { countryContinent } from './geo'
 
 /**
  * Portfolio X-Ray aggregation. Pure: positions + per-instrument profiles in,
@@ -176,6 +177,19 @@ export function countryAllocation(
     if (!country) continue
     byLabel.set(country, (byLabel.get(country) ?? 0) + h.value)
     classified += h.value
+  }
+  return { slices: toSlices(byLabel, total), coverage: total > 0 ? classified / total : 0 }
+}
+
+/** Continent allocation aggregated from the country breakdown. */
+export function regionAllocation(countries: Breakdown, total: number): Breakdown {
+  const byLabel = new Map<string, number>()
+  let classified = 0
+  for (const s of countries.slices) {
+    const continent = countryContinent(s.label)
+    if (!continent) continue
+    byLabel.set(continent, (byLabel.get(continent) ?? 0) + s.value)
+    classified += s.value
   }
   return { slices: toSlices(byLabel, total), coverage: total > 0 ? classified / total : 0 }
 }
