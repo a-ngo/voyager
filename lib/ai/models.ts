@@ -26,6 +26,8 @@ export interface ModelMeta {
   sendsDataTo: string | null
   /** Runs on the user's machine — no data leaves the device. */
   local: boolean
+  /** Usable context window (working budget, not always the model max). Drives summarize-on-overflow. */
+  contextTokens: number
 }
 
 export const MODEL_REGISTRY = {
@@ -36,6 +38,7 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: 'Anthropic',
     local: false,
+    contextTokens: 200_000,
   },
   // Hosted, cheap, strong tool use. DeepSeek-V3 (`deepseek-chat`); needs DEEPSEEK_API_KEY.
   'deepseek:deepseek-chat': {
@@ -45,12 +48,15 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: 'DeepSeek',
     local: false,
+    contextTokens: 64_000,
   },
   // Local via Ollama (OpenAI-compatible at localhost:11434). The model tag's own
   // colon (e.g. `qwen3:14b`) is preserved — the registry splits on the first colon
   // only. Each must be pulled first (`ollama pull <model>`). All support tool
   // calling, but less reliably than hosted models — see §8 capability gating.
   // Footprints are ~Q4 and assume a 24 GB Mac running the dev server alongside.
+  // contextTokens is a conservative working budget — Ollama often caps num_ctx
+  // well below a model's native window, so summarize-on-overflow kicks in early.
   'local:qwen3:14b': {
     label: 'Qwen3 14B (local)', // recommended local default — best tool use that fits comfortably (~9 GB)
     provider: 'local',
@@ -58,6 +64,7 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: null,
     local: true,
+    contextTokens: 16_000,
   },
   'local:qwen3:30b-a3b': {
     label: 'Qwen3 30B-A3B (local)', // MoE, ~3B active → fast; ~17 GB, tight alongside dev server
@@ -66,6 +73,7 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: null,
     local: true,
+    contextTokens: 16_000,
   },
   'local:qwen2.5:14b': {
     label: 'Qwen2.5 14B (local)', // prior-gen, solid fallback (~9 GB)
@@ -74,6 +82,7 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: null,
     local: true,
+    contextTokens: 16_000,
   },
   'local:mistral-small3.2:24b': {
     label: 'Mistral Small 3.2 (local)', // strong instruction-follower (~14 GB, tighter/slower)
@@ -82,6 +91,7 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: null,
     local: true,
+    contextTokens: 16_000,
   },
   'local:llama3.1:8b': {
     label: 'Llama 3.1 8B (local)', // lightest/fastest (~5 GB), weakest tool reliability
@@ -90,6 +100,7 @@ export const MODEL_REGISTRY = {
     supportsTools: true,
     sendsDataTo: null,
     local: true,
+    contextTokens: 16_000,
   },
 } as const satisfies Record<string, ModelMeta>
 

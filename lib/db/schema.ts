@@ -143,3 +143,14 @@ export const dashboardLayouts = pgTable('dashboard_layouts', {
   breakpoint: text('breakpoint').notNull().default('lg'),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 })
+
+// AI assistant conversations — messages is a JSONB array of AI SDK UIMessages.
+export const aiConversations = pgTable('ai_conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  title: text('title'),
+  modelId: text('model_id'),
+  messages: jsonb('messages').notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+})

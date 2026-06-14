@@ -151,7 +151,7 @@ cp .env.example .env.local   # fill in Supabase + OpenFIGI / Anthropic keys
 npm run dev                  # cloud Supabase → http://localhost:3000 (redirects to /dashboard)
 ```
 
-Then run `supabase/migrations/0001_init.sql` and `0002_isin_name.sql` in your Supabase SQL
+Then run the migrations in `supabase/migrations/` in order (`0001` → `0004`) in your Supabase SQL
 editor, sign up at `/signup`, and import a CSV at `/import`.
 
 ## Scripts
@@ -220,7 +220,7 @@ isn't at the default `http://localhost:11434/v1`. Adding a provider or model is 
 
 ## Open TODOs
 
-- AI assistant: conversation persistence (the chat is stateless per page load today). An eval harness is in `tests/ai/` (`npm run eval`); prompt caching is deferred until the prompt prefix is large enough to cache.
+- AI assistant: prompt caching is deferred until the prompt prefix is large enough to cache (see `lib/ai/system.ts`). The eval harness is in `tests/ai/` (`npm run eval`).
 - Rebalancing drift alerts and monthly digest email (Resend).
 - Manual transaction add/edit/delete (the ledger is read-only today).
 - Layout/config persistence to Supabase (dashboard layout still in `localStorage`).
