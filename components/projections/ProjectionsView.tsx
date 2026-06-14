@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatMoney } from '@/lib/utils/format'
@@ -33,7 +33,7 @@ function historicalRate(
   return Math.round(annual * 10) / 10
 }
 
-/** Round to a clean 1 / 2 / 5 × 10ⁿ value (for the default target). */
+/** Round to a clean 1 / 2 / 5 × 10ⁿ value (for the default target only). */
 function niceRound(n: number): number {
   if (n <= 0) return 0
   const e = Math.pow(10, Math.floor(Math.log10(n)))
@@ -48,31 +48,32 @@ function num(e: React.ChangeEvent<HTMLInputElement>): number {
 
 export function ProjectionsView() {
   const { data: summary } = usePortfolioSummary()
-  const { data: perf } = usePerformanceSeries()
+  const { data: perf, isLoading: perfLoading } = usePerformanceSeries()
 
-  const netWorth = Math.round(summary?.netWorth ?? 0)
-  const histAuto =
-    historicalRate(summary?.totalReturnPct, perf?.points[0]?.date, perf?.points.at(-1)?.date) ?? 7
-
-  // null = follow the data-derived default; a number = user override.
-  const [initial, setInitial] = useState<number | null>(null)
+  // Every field is independent plain state; the data-derived ones are seeded once
+  // (below) and never recompute from other inputs.
+  const [initial, setInitial] = useState(0)
   const [monthly, setMonthly] = useState(500)
   const [years, setYears] = useState(20)
   const [cashRate, setCashRate] = useState(2.25)
-  const [histRate, setHistRate] = useState<number | null>(null)
+  const [histRate, setHistRate] = useState(7)
   const [customRate, setCustomRate] = useState(8)
-  const [target, setTarget] = useState<number | null>(null)
+  const [target, setTarget] = useState(0)
 
-  const effInitial = initial ?? netWorth
-  const effHist = histRate ?? histAuto
-  const rates: Record<string, number> = { cash: cashRate, historical: effHist, custom: customRate }
+  const seeded = useRef(false)
+  useEffect(() => {
+    if (seeded.current || !summary || perfLoading) return
+    const nw = Math.round(summary.netWorth ?? 0)
+    const hist =
+      historicalRate(summary.totalReturnPct, perf?.points[0]?.date, perf?.points.at(-1)?.date) ?? 7
+    const proj = project({ initial: nw, monthlyContribution: 500, annualRatePct: hist, years: 20 })
+    setInitial(nw)
+    setHistRate(hist)
+    setTarget(niceRound(proj.points[Math.round(20 * 0.75)]?.value ?? proj.finalValue))
+    seeded.current = true
+  }, [summary, perf, perfLoading])
 
-  // Default target: a clean number near the historical scenario ~¾ of the way out.
-  const histProj = project({ initial: effInitial, monthlyContribution: monthly, annualRatePct: effHist, years })
-  const defaultTarget = niceRound(
-    histProj.points[Math.round(years * 0.75)]?.value ?? histProj.finalValue,
-  )
-  const effTarget = target ?? defaultTarget
+  const rates: Record<string, number> = { cash: cashRate, historical: histRate, custom: customRate }
 
   const computed = useMemo(
     () =>
@@ -81,12 +82,12 @@ export function ProjectionsView() {
         return {
           meta: s,
           annualRatePct,
-          res: project({ initial: effInitial, monthlyContribution: monthly, annualRatePct, years }),
-          cross: yearsToReach({ initial: effInitial, monthlyContribution: monthly, annualRatePct, target: effTarget }),
+          res: project({ initial, monthlyContribution: monthly, annualRatePct, years }),
+          cross: yearsToReach({ initial, monthlyContribution: monthly, annualRatePct, target }),
         }
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [effInitial, monthly, years, cashRate, effHist, customRate, effTarget],
+    [initial, monthly, years, cashRate, histRate, customRate, target],
   )
 
   const chartData = useMemo(() => {
@@ -94,28 +95,28 @@ export function ProjectionsView() {
     for (let y = 0; y <= years; y++) {
       const row: Record<string, number> = { year: y }
       for (const { meta, res } of computed) row[meta.id] = res.points[y]?.value ?? res.finalValue
-      row.invested = computed[0]?.res.points[y]?.invested ?? effInitial
+      row.invested = computed[0]?.res.points[y]?.invested ?? initial
       rows.push(row)
     }
     return rows
-  }, [computed, years, effInitial])
+  }, [computed, years, initial])
 
   const markers: TargetMarker[] = computed
     .filter((c) => c.cross != null && c.cross <= years)
     .map((c) => ({ id: c.meta.id, color: c.meta.color, year: c.cross as number }))
 
-  const totalInvested = effInitial + monthly * years * 12
+  const totalInvested = initial + monthly * years * 12
 
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 pt-6 sm:grid-cols-3 lg:grid-cols-4">
-          <Field label="Starting value" value={effInitial} onChange={(e) => setInitial(num(e))} suffix="€" />
+          <Field label="Starting value" value={initial} onChange={(e) => setInitial(num(e))} suffix="€" />
           <Field label="Monthly saving" value={monthly} onChange={(e) => setMonthly(num(e))} suffix="€" />
           <Field label="Years" value={years} onChange={(e) => setYears(Math.max(1, Math.min(60, num(e))))} />
-          <Field label="Target value" value={effTarget} onChange={(e) => setTarget(num(e))} suffix="€" />
+          <Field label="Target value" value={target} onChange={(e) => setTarget(num(e))} suffix="€" />
           <Field label="Cash interest" value={cashRate} onChange={(e) => setCashRate(num(e))} suffix="%" step="0.05" />
-          <Field label="Historical return" value={effHist} onChange={(e) => setHistRate(num(e))} suffix="%" step="0.1" />
+          <Field label="Historical return" value={histRate} onChange={(e) => setHistRate(num(e))} suffix="%" step="0.1" />
           <Field label="Custom return" value={customRate} onChange={(e) => setCustomRate(num(e))} suffix="%" step="0.1" />
         </CardContent>
       </Card>
@@ -130,7 +131,7 @@ export function ProjectionsView() {
               data={chartData}
               scenarios={[...SCENARIO_META]}
               currency="EUR"
-              target={effTarget}
+              target={target}
               markers={markers}
             />
           </div>
@@ -154,11 +155,13 @@ export function ProjectionsView() {
                 {formatMoney(res.totalGrowth, 'EUR')} from compounding
               </span>
               <span className="text-xs text-faint">
-                {cross == null
-                  ? 'Target not reached within 100 years'
-                  : cross <= years
-                    ? `Reaches ${formatMoney(effTarget, 'EUR')} in ~${cross} years`
-                    : `Reaches ${formatMoney(effTarget, 'EUR')} in ~${cross} years (beyond chart)`}
+                {target <= 0
+                  ? 'Set a target value to see when it’s reached'
+                  : cross == null
+                    ? 'Target not reached within 100 years'
+                    : cross <= years
+                      ? `Reaches ${formatMoney(target, 'EUR')} in ~${cross} years`
+                      : `Reaches ${formatMoney(target, 'EUR')} in ~${cross} years (beyond chart)`}
               </span>
             </CardContent>
           </Card>
@@ -166,10 +169,10 @@ export function ProjectionsView() {
       </div>
 
       <p className="text-xs text-faint">
-        Starting from {formatMoney(effInitial, 'EUR')} plus {formatMoney(monthly, 'EUR')}/month,
-        you contribute {formatMoney(totalInvested, 'EUR')} over {years} years (the dashed line).
-        Each scenario assumes a constant annual return, compounded monthly; the dotted line marks
-        your target. Illustrative, not a forecast.
+        Starting from {formatMoney(initial, 'EUR')} plus {formatMoney(monthly, 'EUR')}/month, you
+        contribute {formatMoney(totalInvested, 'EUR')} over {years} years (the dashed line). Each
+        scenario assumes a constant annual return, compounded monthly; the dotted line marks your
+        target. Illustrative, not a forecast.
       </p>
     </div>
   )
