@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 import { perMinuteLimiter } from '@/lib/prices/rate-limiter'
 import { registry, missingApiKeyEnv } from '@/lib/ai/providers'
 import { buildTools } from '@/lib/ai/tools'
+import { SYSTEM } from '@/lib/ai/system'
 import { MODEL_IDS, MODEL_REGISTRY, DEFAULT_MODEL_ID, type ModelMeta } from '@/lib/ai/models'
 
 /**
@@ -31,13 +32,6 @@ const BodySchema = z.object({
   messages: z.array(z.unknown()),
   modelId: z.enum(MODEL_IDS).default(DEFAULT_MODEL_ID),
 })
-
-const SYSTEM = `You are Voyager's portfolio assistant. You help the user understand their own investment portfolio.
-
-- Use the provided tools to fetch the user's real data instead of guessing. Do not invent figures.
-- Be analytical, not advisory: report allocation, drift, returns, and consensus. Never tell the user to buy, sell, or hold a specific instrument.
-- All monetary figures are in EUR unless stated otherwise. Be concise.
-- When your answer includes monetary figures or returns, end the message with: "Not financial advice."`
 
 export async function POST(req: Request) {
   const supabase = await createClient()

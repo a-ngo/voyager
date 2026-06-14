@@ -1,6 +1,7 @@
 import 'server-only'
 import { createProviderRegistry } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
+import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import type { Provider } from './models'
 
@@ -18,6 +19,7 @@ const LOCAL_BASE_URL = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434/v1
  */
 export const registry = createProviderRegistry({
   anthropic: createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY }),
+  deepseek: createDeepSeek({ apiKey: process.env.DEEPSEEK_API_KEY }),
   local: createOpenAICompatible({ name: 'local', baseURL: LOCAL_BASE_URL }),
 })
 
@@ -27,6 +29,7 @@ export const registry = createProviderRegistry({
  */
 const PROVIDER_API_KEY_ENV: Record<Provider, string | null> = {
   anthropic: 'ANTHROPIC_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
   local: null,
 }
 

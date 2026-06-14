@@ -80,8 +80,8 @@ summary. Verified on both US and EU listings.
 Ask about allocation, drift, returns, or a specific holding. The assistant is a thin tool-use
 layer over the same tested functions the rest of the app uses (overview, allocation drift,
 X-Ray, performance, holding detail), so its figures come from your real data rather than a
-guessed summary. Pick the model from a dropdown: Claude (hosted) or a local model via Ollama
-(Qwen3, Mistral, Llama) where your financial data never leaves your machine. The selected model
+guessed summary. Pick the model from a dropdown: Claude or DeepSeek (hosted), or a local model
+via Ollama (Qwen3, Mistral, Llama) where your financial data never leaves your machine. The selected model
 is validated server-side against an allowlist, and every model call is session-checked and
 rate-limited. Analytical, not advisory.
 
@@ -103,7 +103,7 @@ entirely server-side, never logged beyond counts.
 
 Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui · Recharts ·
 react-grid-layout · TanStack Query · Zod · Supabase (Postgres + Auth + RLS) · Drizzle ·
-Vercel AI SDK (Anthropic Claude + local models via Ollama) · Resend · Vercel.
+Vercel AI SDK (Anthropic Claude, DeepSeek, local models via Ollama) · Resend · Vercel.
 
 ## Folder structure
 
@@ -220,7 +220,7 @@ isn't at the default `http://localhost:11434/v1`. Adding a provider or model is 
 
 ## Open TODOs
 
-- AI assistant follow-ups: conversation persistence, prompt caching, an eval harness, and a DeepSeek provider.
+- AI assistant: conversation persistence (the chat is stateless per page load today). An eval harness is in `tests/ai/` (`npm run eval`); prompt caching is deferred until the prompt prefix is large enough to cache.
 - Rebalancing drift alerts and monthly digest email (Resend).
 - Manual transaction add/edit/delete (the ledger is read-only today).
 - Layout/config persistence to Supabase (dashboard layout still in `localStorage`).

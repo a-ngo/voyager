@@ -14,10 +14,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval": "RUN_AI_EVAL=1 dotenv -e .env.local -- vitest run tests/ai/eval.test.ts --reporter=verbose",
     "screenshot": "node scripts/screenshot.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",
+    "@ai-sdk/deepseek": "^2.0.38",
     "@ai-sdk/openai-compatible": "^2.0.50",
     "@ai-sdk/react": "^3.0.206",
     "@supabase/ssr": "^0.10.3",

@@ -11,8 +11,7 @@
  * providers.ts. The server-side allowlist and the UI both derive from this.
  */
 
-// Widen this union as providers are added (e.g. add 'deepseek').
-export type Provider = 'anthropic' | 'local'
+export type Provider = 'anthropic' | 'deepseek' | 'local'
 
 export interface ModelMeta {
   /** Display label for the dropdown. */
@@ -36,6 +35,15 @@ export const MODEL_REGISTRY = {
     model: 'claude-opus-4-8',
     supportsTools: true,
     sendsDataTo: 'Anthropic',
+    local: false,
+  },
+  // Hosted, cheap, strong tool use. DeepSeek-V3 (`deepseek-chat`); needs DEEPSEEK_API_KEY.
+  'deepseek:deepseek-chat': {
+    label: 'DeepSeek V3',
+    provider: 'deepseek',
+    model: 'deepseek-chat',
+    supportsTools: true,
+    sendsDataTo: 'DeepSeek',
     local: false,
   },
   // Local via Ollama (OpenAI-compatible at localhost:11434). The model tag's own
