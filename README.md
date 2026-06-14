@@ -74,6 +74,20 @@ summary. Verified on both US and EU listings.
 </details>
 
 <details>
+<summary><b>Projections</b> — extend your portfolio into the future under different scenarios</summary>
+
+<br>
+
+A `/projections` page that compounds your current value plus a configurable monthly contribution
+over a configurable horizon, under three editable return scenarios: cash interest, your portfolio's
+own historical return (auto-derived), and a custom rate. Set a target value and the chart marks the
+year each scenario reaches it; the "invested" baseline shows the compounding gain, and cards show
+the projected value, growth, and years-to-target per scenario. Pure, tested math
+(`lib/finance/projection.ts`). Illustrative, not a forecast.
+
+</details>
+
+<details>
 <summary><b>Themes</b> — five designs, switchable and persistent</summary>
 
 <br>
