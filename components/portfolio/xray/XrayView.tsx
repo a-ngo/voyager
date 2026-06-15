@@ -4,6 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Money } from '@/components/shared/Money'
+import { InfoPopover } from '@/components/shared/InfoPopover'
 import { useXray } from '@/hooks/useXray'
 import type { Breakdown } from '@/lib/finance/xray'
 import { HoldingDetailDialog } from '@/components/portfolio/HoldingDetailDialog'
@@ -217,6 +218,50 @@ export function XrayView() {
                 </span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {(data.cost.funds.length > 0 || data.cost.coverage < 0.999) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-1 text-sm">
+              Annual cost (TER)
+              <InfoPopover label="Total expense ratio (TER)">
+                The annual fee charged by your funds, expressed as a percentage of assets under
+                management. Shown blended across the portfolio (each fund weighted by its value) and
+                as an annual amount. Direct stocks carry no such fee.
+              </InfoPopover>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-medium text-foreground">
+                {data.cost.weightedTerPct.toFixed(2)}%
+              </span>
+              <span className="text-sm text-muted">
+                <Money value={data.cost.annualCost} /> per year
+              </span>
+            </div>
+            {data.cost.funds.length === 0 ? (
+              <p className="text-xs text-muted">No fund expense ratios available.</p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {data.cost.funds.slice(0, 8).map((f) => (
+                  <div key={f.name} className="flex items-baseline justify-between gap-2 text-xs">
+                    <span className="truncate text-foreground">{f.name}</span>
+                    <span className="whitespace-nowrap tabular-nums text-muted">
+                      {f.terPct.toFixed(2)}% · <Money value={f.annualCost} />/yr
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {data.cost.coverage < 0.999 && (
+              <p className="text-xs text-faint">
+                TER known for {(data.cost.coverage * 100).toFixed(0)}% of holdings by value.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

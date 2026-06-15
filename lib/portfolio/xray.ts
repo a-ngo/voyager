@@ -14,6 +14,7 @@ import {
   type LookThroughHolding,
   type XrayPosition,
 } from '@/lib/finance/xray'
+import { portfolioCost, type CostResult } from '@/lib/finance/cost'
 import { getValuedOverview } from './valued-overview'
 import type { OverviewSlice } from './overview'
 
@@ -29,7 +30,10 @@ export interface XrayData {
   topHoldings: LookThroughHolding[]
   overlaps: LookThroughHolding[]
   concentration: Concentration
+  cost: CostResult
 }
+
+const EMPTY_COST: CostResult = { weightedTerPct: 0, annualCost: 0, coverage: 0, funds: [] }
 
 const EMPTY: Breakdown = { slices: [], coverage: 0 }
 const UNDERLYING_COUNTRY_LIMIT = 30
@@ -57,6 +61,7 @@ export async function getXray(userId: string): Promise<XrayData> {
       topHoldings: [],
       overlaps: [],
       concentration: { holdings: 0, top10Weight: 0, largestWeight: 0, effectiveHoldings: 0 },
+      cost: EMPTY_COST,
     }
   }
 
@@ -105,6 +110,15 @@ export async function getXray(userId: string): Promise<XrayData> {
   const regions = regionAllocation(countries, total)
   const currencies = currencyExposure(countries, total)
 
+  // Fund cost: each position's TER (funds only; stocks/cash are fee-free; a fund
+  // whose TER Yahoo doesn't report stays null and lowers coverage).
+  const cost = portfolioCost(
+    positions.map((p) => {
+      const profile = p.symbol ? profiles.get(p.symbol) : undefined
+      return { name: p.name, value: p.eurValue, ter: profile?.isFund ? profile.ter : 0 }
+    }),
+  )
+
   return {
     hasData: true,
     total,
@@ -119,6 +133,7 @@ export async function getXray(userId: string): Promise<XrayData> {
       sector: h.symbol ? (sectorBySymbol.get(h.symbol.toUpperCase()) ?? null) : null,
     })),
     overlaps: holdings.filter((h) => h.via === 'both'),
+    cost,
     concentration: concentration(positions),
   }
 }

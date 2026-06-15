@@ -22,6 +22,7 @@ const worldEtf: InstrumentProfile = {
   ],
   country: null,
   sector: null,
+  ter: 0.002,
 }
 const appleStock: InstrumentProfile = {
   isFund: false,
@@ -29,6 +30,7 @@ const appleStock: InstrumentProfile = {
   holdings: [],
   country: 'United States',
   sector: 'Technology',
+  ter: null,
 }
 
 describe('lookThroughHoldings', () => {

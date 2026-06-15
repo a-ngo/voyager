@@ -16,6 +16,8 @@ export interface InstrumentProfile {
   holdings: { symbol: string; name: string; weight: number }[]
   country: string | null
   sector: string | null
+  /** Expense ratio (TER) as a fraction (0.002 = 0.20%); funds only, null if unknown. */
+  ter: number | null
 }
 
 export interface XrayPosition {

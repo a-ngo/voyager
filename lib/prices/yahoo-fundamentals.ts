@@ -56,7 +56,7 @@ export async function fetchInstrumentProfile(symbol: string): Promise<Instrument
 
   const url =
     `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}` +
-    `?modules=topHoldings,assetProfile&crumb=${encodeURIComponent(a.crumb)}`
+    `?modules=topHoldings,assetProfile,fundProfile&crumb=${encodeURIComponent(a.crumb)}`
 
   let profile: InstrumentProfile | null = null
   try {
@@ -67,8 +67,12 @@ export async function fetchInstrumentProfile(symbol: string): Promise<Instrument
         const th = (result.topHoldings ?? {}) as {
           holdings?: RawHolding[]
           sectorWeightings?: Array<Record<string, { raw?: number }>>
+          feesExpensesInvestment?: { annualReportExpenseRatio?: { raw?: number } }
         }
         const ap = (result.assetProfile ?? {}) as { country?: string; sector?: string }
+        const fp = (result.fundProfile ?? {}) as {
+          feesExpensesInvestment?: { annualReportExpenseRatio?: { raw?: number } }
+        }
 
         const holdings = (th.holdings ?? [])
           .filter((h) => h.symbol)
@@ -83,12 +87,17 @@ export async function fetchInstrumentProfile(symbol: string): Promise<Instrument
           if (key && val?.raw != null) sectorWeights[key] = val.raw
         }
         const isFund = holdings.length > 0 || Object.keys(sectorWeights).length > 0
+        const ter =
+          fp.feesExpensesInvestment?.annualReportExpenseRatio?.raw ??
+          th.feesExpensesInvestment?.annualReportExpenseRatio?.raw ??
+          null
         profile = {
           isFund,
           sectorWeights,
           holdings,
           country: ap.country ?? null,
           sector: ap.sector ?? null,
+          ter: isFund ? ter : null,
         }
       }
     }
