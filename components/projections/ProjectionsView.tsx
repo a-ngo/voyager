@@ -7,8 +7,9 @@ import { Money } from '@/components/shared/Money'
 import { usePortfolioSummary } from '@/hooks/usePortfolioSummary'
 import { usePerformanceSeries } from '@/hooks/usePerformanceSeries'
 import { project, yearsToReach } from '@/lib/finance/projection'
-import { timeWeightedReturn } from '@/lib/finance/returns'
+import { timeWeightedReturn, riskMetrics } from '@/lib/finance/returns'
 import type { ScenarioLine, TargetMarker } from './ProjectionChart'
+import { MonteCarloPanel } from './MonteCarloPanel'
 
 const ProjectionChart = dynamic(
   () => import('./ProjectionChart').then((m) => m.ProjectionChart),
@@ -97,6 +98,13 @@ export function ProjectionsView() {
 
   const totalInvested = initial + monthly * years * 12
 
+  // Annualized volatility of the portfolio's own value series — seeds the
+  // Monte Carlo spread (falls back to 15% before the series is available).
+  const histVolPct = useMemo(() => {
+    const rm = perf?.points ? riskMetrics(perf.points) : null
+    return rm ? Math.round(rm.volatility * 1000) / 10 : 15
+  }, [perf])
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -160,6 +168,15 @@ export function ProjectionsView() {
           </Card>
         ))}
       </div>
+
+      <MonteCarloPanel
+        initial={initial}
+        monthlyContribution={monthly}
+        years={years}
+        target={target}
+        defaultReturnPct={histRate}
+        defaultVolatilityPct={histVolPct}
+      />
 
       <p className="text-xs text-faint">
         Starting from <Money value={initial} /> plus <Money value={monthly} />/month, you
