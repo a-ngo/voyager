@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/utils/format'
 import { usePortfolioSummary } from '@/hooks/usePortfolioSummary'
 import { usePerformanceSeries } from '@/hooks/usePerformanceSeries'
 import { project, yearsToReach } from '@/lib/finance/projection'
+import { timeWeightedReturn } from '@/lib/finance/returns'
 import type { ScenarioLine, TargetMarker } from './ProjectionChart'
 
 const ProjectionChart = dynamic(
@@ -19,19 +20,6 @@ const SCENARIO_META = [
   { id: 'historical', label: 'Historical return', color: '#f0a35a' },
   { id: 'custom', label: 'Custom', color: '#56c98a' },
 ] as const satisfies ScenarioLine[]
-
-/** Annualize the portfolio's return-on-contributions over its holding period. */
-function historicalRate(
-  totalReturnPct: number | undefined,
-  from: string | undefined,
-  to: string | undefined,
-): number | null {
-  if (totalReturnPct == null || !from || !to) return null
-  const years = (Date.parse(to) - Date.parse(from)) / (365 * 86400000)
-  if (!(years > 0.1)) return null
-  const annual = (Math.pow(1 + totalReturnPct / 100, 1 / years) - 1) * 100
-  return Math.round(annual * 10) / 10
-}
 
 /** Round to a clean 1 / 2 / 5 × 10ⁿ value (for the default target only). */
 function niceRound(n: number): number {
@@ -64,8 +52,10 @@ export function ProjectionsView() {
   useEffect(() => {
     if (seeded.current || !summary || perfLoading) return
     const nw = Math.round(summary.netWorth ?? 0)
-    const hist =
-      historicalRate(summary.totalReturnPct, perf?.points[0]?.date, perf?.points.at(-1)?.date) ?? 7
+    // Prefill historical return with the all-time (since-start) annualized TWR —
+    // the same figure the Performance page shows for the "All" window.
+    const twr = perf?.points ? timeWeightedReturn(perf.points) : null
+    const hist = twr ? Math.round(twr.annualized * 1000) / 10 : 7
     const proj = project({ initial: nw, monthlyContribution: 500, annualRatePct: hist, years: 20 })
     setInitial(nw)
     setHistRate(hist)
