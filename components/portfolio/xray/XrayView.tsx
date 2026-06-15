@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatMoney } from '@/lib/utils/format'
+import { Money } from '@/components/shared/Money'
 import { useXray } from '@/hooks/useXray'
 import type { Breakdown } from '@/lib/finance/xray'
 import { HoldingDetailDialog } from '@/components/portfolio/HoldingDetailDialog'
@@ -183,7 +183,7 @@ export function XrayView() {
                       {h.weight.toFixed(2)}%
                     </td>
                     <td className="px-1 py-1.5 text-right tabular-nums">
-                      {formatMoney(h.value, currency)}
+                      <Money value={h.value} currency={currency} />
                     </td>
                   </tr>
                 )
@@ -208,11 +208,11 @@ export function XrayView() {
               <div key={h.symbol ?? h.name} className="flex items-baseline justify-between text-xs">
                 <span className="text-foreground">{h.name}</span>
                 <span className="tabular-nums text-muted">
-                  {formatMoney(h.value, currency)} total
+                  <Money value={h.value} currency={currency} /> total
                   <span className="text-faint">
                     {' '}
-                    ({formatMoney(h.directValue, currency)} direct +{' '}
-                    {formatMoney(h.fundValue, currency)} via funds)
+                    (<Money value={h.directValue} currency={currency} /> direct +{' '}
+                    <Money value={h.fundValue} currency={currency} /> via funds)
                   </span>
                 </span>
               </div>

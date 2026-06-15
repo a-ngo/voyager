@@ -193,3 +193,18 @@ body {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/*
+ * Anonymize amounts: blur absolute € figures so the app can be shown to others
+ * without leaking net worth. Percentages/returns are plain text and stay sharp.
+ * Tagged values use .anon-amount; charts blur the value (Y) axis + tooltips.
+ */
+[data-anon='1'] .anon-amount {
+  filter: blur(0.4em);
+  user-select: none;
+}
+[data-anon='1'] .recharts-yAxis .recharts-cartesian-axis-tick-value,
+[data-anon='1'] .recharts-tooltip-wrapper {
+  filter: blur(6px);
+  user-select: none;
+}

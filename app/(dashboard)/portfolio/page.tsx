@@ -10,6 +10,7 @@ import { InstrumentLabel } from '@/components/portfolio/InstrumentLabel'
 import { createClient } from '@/lib/supabase/server'
 import { getValuedOverview } from '@/lib/portfolio/valued-overview'
 import { formatMoney, formatQuantity } from '@/lib/utils/format'
+import { Money } from '@/components/shared/Money'
 
 export default async function PortfolioPage() {
   const supabase = await createClient()
@@ -55,14 +56,14 @@ export default async function PortfolioPage() {
           <div>
             <div className="text-[10px] uppercase tracking-widest text-faint">Net worth</div>
             <div className="text-3xl font-semibold tabular-nums text-foreground">
-              {formatMoney(o.netWorth, c)}
+              <Money value={o.netWorth} currency={c} />
             </div>
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-widest text-faint">Total return</div>
             <div className={`text-xl font-semibold tabular-nums ${returnTone}`}>
               {o.totalReturnAbs >= 0 ? '+' : ''}
-              {formatMoney(o.totalReturnAbs, c)} ({o.totalReturnPct.toFixed(1)}%)
+              <Money value={o.totalReturnAbs} currency={c} /> ({o.totalReturnPct.toFixed(1)}%)
             </div>
           </div>
         </CardContent>
@@ -138,16 +139,16 @@ export default async function PortfolioPage() {
                         {formatQuantity(p.quantity)}
                       </td>
                       <td className="py-2 text-right tabular-nums text-muted">
-                        {formatMoney(p.averageCost, c)}
+                        <Money value={p.averageCost} currency={c} />
                       </td>
                       <td className="py-2 text-right tabular-nums text-muted">
-                        {p.price == null ? 'no price' : formatMoney(p.price, c)}
+                        {p.price == null ? 'no price' : <Money value={p.price} currency={c} />}
                       </td>
                       <td className="py-2 text-right tabular-nums text-foreground">
-                        {p.marketValue == null ? '—' : formatMoney(p.marketValue, c)}
+                        {p.marketValue == null ? '—' : <Money value={p.marketValue} currency={c} />}
                       </td>
                       <td className={`py-2 text-right tabular-nums ${pnlTone}`}>
-                        {p.unrealizedPnl == null ? '—' : formatMoney(p.unrealizedPnl, c)}
+                        {p.unrealizedPnl == null ? '—' : <Money value={p.unrealizedPnl} currency={c} />}
                       </td>
                     </tr>
                   )
@@ -197,7 +198,7 @@ function Stat({
           : 'text-foreground'
   return (
     <div className="rounded-[var(--radius-card)] border border-border bg-panel-elevated p-3">
-      <div className={`text-lg font-semibold tabular-nums ${color}`}>{value}</div>
+      <div className={`anon-amount text-lg font-semibold tabular-nums ${color}`}>{value}</div>
       <div className="text-[10px] uppercase tracking-widest text-faint">{label}</div>
     </div>
   )

@@ -88,6 +88,19 @@ the projected value, growth, and years-to-target per scenario. Pure, tested math
 </details>
 
 <details>
+<summary><b>Anonymize amounts</b> — blur absolute values to share your screen safely</summary>
+
+<br>
+
+A global toggle (sidebar) blurs every absolute € figure — net worth, portfolio values, cash, P/L,
+chart value-axes — while keeping relative values (returns, allocation %, drift) sharp. So you can
+show someone your allocation or performance without revealing how much you hold. The choice
+persists and applies before first paint; public market data (an instrument's price, analyst
+targets) stays visible since it isn't yours to hide.
+
+</details>
+
+<details>
 <summary><b>Themes</b> — five designs, switchable and persistent</summary>
 
 <br>

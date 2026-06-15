@@ -1,4 +1,4 @@
-import { formatMoney } from '@/lib/utils/format'
+import { Money } from '@/components/shared/Money'
 
 interface Slice {
   label: string
@@ -30,7 +30,7 @@ export function BarList({
           <div className="flex items-baseline justify-between gap-2">
             <span className="truncate text-foreground">{s.label}</span>
             <span className="whitespace-nowrap tabular-nums text-muted">
-              {s.weight.toFixed(1)}% · {formatMoney(s.value, currency)}
+              {s.weight.toFixed(1)}% · <Money value={s.value} currency={currency} />
             </span>
           </div>
           <div className="mt-1 h-1.5 rounded bg-panel-elevated">

@@ -45,10 +45,12 @@ export default function NetWorthGoalWidget({ config }: WidgetProps<Config>) {
       </div>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-semibold tabular-nums text-foreground">
+        <span className="anon-amount text-2xl font-semibold tabular-nums text-foreground">
           {full.format(current)}
         </span>
-        <span className="text-xs text-muted">/ {compact.format(goal)} goal</span>
+        <span className="text-xs text-muted">
+          / <span className="anon-amount">{compact.format(goal)}</span> goal
+        </span>
       </div>
 
       <div className="relative h-2 overflow-hidden rounded-full bg-panel-elevated">
@@ -60,7 +62,9 @@ export default function NetWorthGoalWidget({ config }: WidgetProps<Config>) {
 
       <div className="flex items-center justify-between text-[11px] text-muted">
         <span className="text-brand">{pct.toFixed(0)}% there</span>
-        <span>{full.format(remaining)} to go</span>
+        <span>
+          <span className="anon-amount">{full.format(remaining)}</span> to go
+        </span>
       </div>
     </div>
   )

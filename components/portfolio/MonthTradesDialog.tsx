@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { TradeDetail } from '@/lib/portfolio/performance-series'
-import { formatMoney } from '@/lib/utils/format'
+import { Money } from '@/components/shared/Money'
 
 /** Modal listing the buy/sell trades for one month (`YYYY-MM`). Null month = closed. */
 export function MonthTradesDialog({
@@ -56,7 +56,7 @@ export function MonthTradesDialog({
               {rows.length} trade{rows.length === 1 ? '' : 's'} · net{' '}
               <span className={net >= 0 ? 'text-positive' : 'text-negative'}>
                 {net >= 0 ? '+' : '−'}
-                {formatMoney(Math.abs(net), currency)}
+                <Money value={Math.abs(net)} currency={currency} />
               </span>
             </p>
           </div>
@@ -104,10 +104,10 @@ export function MonthTradesDialog({
                       {t.quantity != null ? t.quantity.toFixed(4) : '—'}
                     </td>
                     <td className="px-2 py-1.5 text-right tabular-nums text-muted">
-                      {t.price != null ? formatMoney(t.price, currency) : '—'}
+                      {t.price != null ? <Money value={t.price} currency={currency} /> : '—'}
                     </td>
                     <td className="px-2 py-1.5 text-right tabular-nums">
-                      {t.amount != null ? formatMoney(Math.abs(t.amount), currency) : '—'}
+                      {t.amount != null ? <Money value={Math.abs(t.amount)} currency={currency} /> : '—'}
                     </td>
                   </tr>
                 ))}

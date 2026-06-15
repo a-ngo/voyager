@@ -40,7 +40,7 @@ export default function TotalReturnWidget(_props: WidgetProps<Config>) {
           className={positive ? 'h-4 w-4 text-positive' : 'h-4 w-4 rotate-180 text-negative'}
         />
       </div>
-      <span className="mt-0.5 text-xs tabular-nums text-muted">
+      <span className="anon-amount mt-0.5 text-xs tabular-nums text-muted">
         {positive ? '+' : ''}
         {fmt.format(absolute)}
       </span>

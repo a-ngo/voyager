@@ -1,7 +1,8 @@
 import type { TransactionRow } from '@/lib/db/transactions'
 import { InstrumentLabel } from './InstrumentLabel'
 import { displayName } from '@/lib/prices/resolve'
-import { formatDate, formatMoney, formatQuantity } from '@/lib/utils/format'
+import { formatDate, formatQuantity } from '@/lib/utils/format'
+import { Money } from '@/components/shared/Money'
 
 /** Presentational ledger table. `rows` should already be in display order. */
 export function TransactionsTable({
@@ -35,7 +36,7 @@ export function TransactionsTable({
                 {t.quantity ? formatQuantity(Number(t.quantity)) : '—'}
               </td>
               <td className="py-2 text-right tabular-nums text-muted">
-                {t.amount ? formatMoney(Number(t.amount), t.currency) : '—'}
+                {t.amount ? <Money value={Number(t.amount)} currency={t.currency} /> : '—'}
               </td>
             </tr>
           ))}

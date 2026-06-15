@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Rocket, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { NAV_ITEMS, NAV_GROUP_LABELS, type NavItem } from './nav-config'
 import { ThemePicker } from './ThemePicker'
+import { PrivacyToggle } from './PrivacyToggle'
 import { signout } from '@/app/(auth)/actions'
 import { cn } from '@/lib/utils/cn'
 
@@ -125,6 +126,7 @@ export function Sidebar() {
 
       <div className="flex flex-col gap-0.5 border-t border-border px-2 py-2">
         <ThemePicker collapsed={collapsed} />
+        <PrivacyToggle collapsed={collapsed} />
         <form action={signout}>
           <button
             type="submit"

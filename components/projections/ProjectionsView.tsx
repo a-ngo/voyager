@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatMoney } from '@/lib/utils/format'
+import { Money } from '@/components/shared/Money'
 import { usePortfolioSummary } from '@/hooks/usePortfolioSummary'
 import { usePerformanceSeries } from '@/hooks/usePerformanceSeries'
 import { project, yearsToReach } from '@/lib/finance/projection'
@@ -139,19 +139,22 @@ export function ProjectionsView() {
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
               <span className="text-2xl font-medium text-foreground">
-                {formatMoney(res.finalValue, 'EUR')}
+                <Money value={res.finalValue} />
               </span>
               <span className="text-xs text-muted">
-                {formatMoney(res.totalGrowth, 'EUR')} from compounding
+                <Money value={res.totalGrowth} /> from compounding
               </span>
               <span className="text-xs text-faint">
-                {target <= 0
-                  ? 'Set a target value to see when it’s reached'
-                  : cross == null
-                    ? 'Target not reached within 100 years'
-                    : cross <= years
-                      ? `Reaches ${formatMoney(target, 'EUR')} in ~${cross} years`
-                      : `Reaches ${formatMoney(target, 'EUR')} in ~${cross} years (beyond chart)`}
+                {target <= 0 ? (
+                  'Set a target value to see when it’s reached'
+                ) : cross == null ? (
+                  'Target not reached within 100 years'
+                ) : (
+                  <>
+                    Reaches <Money value={target} /> in ~{cross} years
+                    {cross > years ? ' (beyond chart)' : ''}
+                  </>
+                )}
               </span>
             </CardContent>
           </Card>
@@ -159,8 +162,8 @@ export function ProjectionsView() {
       </div>
 
       <p className="text-xs text-faint">
-        Starting from {formatMoney(initial, 'EUR')} plus {formatMoney(monthly, 'EUR')}/month, you
-        contribute {formatMoney(totalInvested, 'EUR')} over {years} years (the dashed line). Each
+        Starting from <Money value={initial} /> plus <Money value={monthly} />/month, you
+        contribute <Money value={totalInvested} /> over {years} years (the dashed line). Each
         scenario assumes a constant annual return, compounded monthly; the dotted line marks your
         target. Illustrative, not a forecast.
       </p>

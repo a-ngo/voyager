@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var v=['ember','ion','onyx','halo','coral'];var t=localStorage.getItem('voyager:theme');if(v.indexOf(t)<0)t='ion';document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','ion')}})()`,
+            __html: `(function(){var d=document.documentElement;try{var v=['ember','ion','onyx','halo','coral'];var t=localStorage.getItem('voyager:theme');if(v.indexOf(t)<0)t='ion';d.setAttribute('data-theme',t);d.setAttribute('data-anon',localStorage.getItem('voyager:anon')==='1'?'1':'0')}catch(e){d.setAttribute('data-theme','ion')}})()`,
           }}
         />
       </head>

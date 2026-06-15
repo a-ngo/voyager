@@ -128,7 +128,7 @@ export function ProjectionChart({
             strokeOpacity={0.5}
             strokeDasharray="5 5"
             label={{
-              value: `Target ${fmtCompact.format(target)}`,
+              value: 'Target',
               position: 'insideTopRight',
               fill: 'var(--color-muted)',
               fontSize: 11,
