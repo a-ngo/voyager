@@ -39,7 +39,7 @@ cost basis vs. live price, and the recent-transactions ledger.
 <br>
 
 Value vs. net invested over a selectable window (YTD / 1Y / 3Y / All). Time-weighted and
-money-weighted returns recompute per window. Overlay your own contributions replayed into
+money-weighted returns plus risk metrics — volatility, max drawdown, Sharpe — recompute per window. Overlay your own contributions replayed into
 MSCI All-World, 70/30 World+EM, S&P 500, or Nasdaq-100. Net buy/sell month markers, click a
 month to drill into that month's trades.
 

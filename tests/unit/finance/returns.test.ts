@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   cashflowsFromSeries,
   moneyWeightedReturn,
+  riskMetrics,
   timeWeightedReturn,
 } from '@/lib/finance/returns'
 
@@ -81,5 +82,51 @@ describe('cashflowsFromSeries', () => {
     expect(flows[0]).toEqual({ date: '2024-01-01', amount: -1000 }) // buy in
     expect(flows).toContainEqual({ date: '2024-03-01', amount: -1000 }) // contribution
     expect(flows.at(-1)).toEqual({ date: '2024-03-01', amount: 2200 }) // terminal value
+  })
+})
+
+describe('riskMetrics', () => {
+  it('returns null with too few points', () => {
+    expect(riskMetrics([{ date: '2024-01-01', value: 100, invested: 100 }])).toBeNull()
+    expect(
+      riskMetrics([
+        { date: '2024-01-01', value: 100, invested: 100 },
+        { date: '2024-02-01', value: 110, invested: 100 },
+      ]),
+    ).toBeNull()
+  })
+
+  it('reports zero volatility and drawdown for a flat series', () => {
+    const flat = [
+      { date: '2024-01-01', value: 100, invested: 100 },
+      { date: '2024-02-01', value: 100, invested: 100 },
+      { date: '2024-03-01', value: 100, invested: 100 },
+    ]
+    const r = riskMetrics(flat)!
+    expect(r.volatility).toBeCloseTo(0, 6)
+    expect(r.maxDrawdown).toBeCloseTo(0, 6)
+    expect(r.sharpe).toBeNull() // zero volatility → undefined Sharpe
+  })
+
+  it('computes max drawdown on the contribution-neutral index', () => {
+    // growth 1.2, 0.75, 1.222 → index 1.2, 0.9, 1.1 → peak 1.2, trough 0.9
+    const r = riskMetrics([
+      { date: '2024-01-01', value: 100, invested: 100 },
+      { date: '2024-02-01', value: 120, invested: 100 },
+      { date: '2024-03-01', value: 90, invested: 100 },
+      { date: '2024-04-01', value: 110, invested: 100 },
+    ])!
+    expect(r.maxDrawdown).toBeCloseTo(0.25, 4)
+    expect(r.volatility).toBeGreaterThan(0)
+  })
+
+  it('ignores contributions when measuring drawdown', () => {
+    // Value only rises because of a deposit; no investment loss → no drawdown.
+    const r = riskMetrics([
+      { date: '2024-01-01', value: 100, invested: 100 },
+      { date: '2024-02-01', value: 200, invested: 200 }, // +100 deposit, flat performance
+      { date: '2024-03-01', value: 300, invested: 300 },
+    ])!
+    expect(r.maxDrawdown).toBeCloseTo(0, 6)
   })
 })

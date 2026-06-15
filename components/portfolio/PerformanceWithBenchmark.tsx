@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { PerformanceChart, type BenchmarkLine } from '@/components/charts/PerformanceChart'
 import { MonthTradesDialog } from '@/components/portfolio/MonthTradesDialog'
+import { InfoPopover } from '@/components/shared/InfoPopover'
 import { BENCHMARKS } from '@/lib/finance/benchmark'
 import {
   cashflowsFromSeries,
   moneyWeightedReturn,
+  riskMetrics,
   timeWeightedReturn,
 } from '@/lib/finance/returns'
 import type { BenchmarkSeries } from '@/lib/portfolio/benchmark-series'
@@ -119,6 +121,7 @@ export function PerformanceWithBenchmark({
   const valueSeries = windowed.map((p) => ({ date: p.date, value: p.value, invested: p.invested }))
   const twr = timeWeightedReturn(valueSeries)
   const mwr = moneyWeightedReturn(cashflowsFromSeries(valueSeries))
+  const risk = riskMetrics(valueSeries)
   const pct = (f: number) => `${f >= 0 ? '+' : ''}${(f * 100).toFixed(1)}%`
 
   // Each benchmark's TWR over the same window — same contribution baseline, so
@@ -233,9 +236,13 @@ export function PerformanceWithBenchmark({
       </div>
 
       <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-        <div title="Compound growth rate over the window, ignoring when you added money — comparable across strategies.">
-          <p className="text-[10px] uppercase tracking-widest text-faint">
+        <div>
+          <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-faint">
             Time-weighted return · ann.
+            <InfoPopover label="Time-weighted return">
+              The compound annual growth rate of the portfolio with the effect of contribution
+              timing removed, making it directly comparable across portfolios and benchmarks.
+            </InfoPopover>
           </p>
           <div className="mt-0.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
             <span>
@@ -262,8 +269,14 @@ export function PerformanceWithBenchmark({
           </div>
         </div>
 
-        <div title="Your actual internal rate of return, which accounts for when you added or withdrew money.">
-          <p className="text-[10px] uppercase tracking-widest text-faint">Money-weighted · ann.</p>
+        <div>
+          <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-faint">
+            Money-weighted · ann.
+            <InfoPopover label="Money-weighted return">
+              The portfolio’s annualized internal rate of return (IRR). Unlike the time-weighted
+              return, it reflects the size and timing of contributions and withdrawals.
+            </InfoPopover>
+          </p>
           <p className="mt-0.5 text-sm">
             <span
               className={
@@ -273,6 +286,43 @@ export function PerformanceWithBenchmark({
               {mwr != null ? pct(mwr) : '—'}
             </span>
           </p>
+        </div>
+
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-faint">Risk · ann.</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="inline-flex items-center gap-1">
+              <span className="text-xs text-muted">Vol</span>
+              <span className="text-foreground">
+                {risk ? `${(risk.volatility * 100).toFixed(1)}%` : '—'}
+              </span>
+              <InfoPopover label="Volatility">
+                The annualized standard deviation of periodic returns. It measures the dispersion,
+                and thus the risk, of those returns.
+              </InfoPopover>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-xs text-muted">Max DD</span>
+              <span className="text-negative">
+                {risk ? `−${(risk.maxDrawdown * 100).toFixed(1)}%` : '—'}
+              </span>
+              <InfoPopover label="Max drawdown">
+                The largest peak-to-trough decline in cumulative performance over the period,
+                measured on a contribution-neutral basis.
+              </InfoPopover>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-xs text-muted">Sharpe</span>
+              <span className="text-foreground">
+                {risk?.sharpe != null ? risk.sharpe.toFixed(2) : '—'}
+              </span>
+              <InfoPopover label="Sharpe ratio">
+                A risk-adjusted return: the annualized return in excess of a risk-free rate (≈2%),
+                divided by annualized volatility. Higher values indicate better compensation for
+                risk.
+              </InfoPopover>
+            </span>
+          </div>
         </div>
       </div>
 

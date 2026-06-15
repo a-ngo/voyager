@@ -50,6 +50,57 @@ export function timeWeightedReturn(points: ValuePoint[]): ReturnResult | null {
   return { cumulative, annualized }
 }
 
+export interface RiskResult {
+  /** Annualized standard deviation of periodic returns (fraction). */
+  volatility: number
+  /** Worst peak-to-trough decline of the contribution-neutral growth index (fraction, ≥0). */
+  maxDrawdown: number
+  /** (annualized TWR − risk-free) / annualized volatility; null when volatility is 0. */
+  sharpe: number | null
+}
+
+/**
+ * Risk metrics over a dated value series, using the same contribution-neutral
+ * period growth as TWR (so deposits don't masquerade as gains or drawdowns):
+ * volatility (annualized stdev of period returns), max drawdown (on the chained
+ * growth index), and Sharpe (annualized TWR over annualized volatility). Needs
+ * ≥3 points (≥2 usable periods); null otherwise.
+ */
+export function riskMetrics(points: ValuePoint[], riskFreeRate = 0.02): RiskResult | null {
+  if (points.length < 3) return null
+
+  const returns: number[] = []
+  let index = 1
+  let peak = 1
+  let maxDrawdown = 0
+  let totalDays = 0
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1]!
+    const cur = points[i]!
+    const flow = cur.invested - prev.invested
+    const base = prev.value + flow
+    if (base <= 0) continue
+    const g = cur.value / base
+    returns.push(g - 1)
+    index *= g
+    peak = Math.max(peak, index)
+    maxDrawdown = Math.max(maxDrawdown, (peak - index) / peak)
+    totalDays += daysBetween(prev.date, cur.date)
+  }
+  if (returns.length < 2) return null
+
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length
+  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1)
+  const periodsPerYear = totalDays > 0 ? (365 * returns.length) / totalDays : 12
+  const volatility = Math.sqrt(variance) * Math.sqrt(periodsPerYear)
+
+  const span = daysBetween(points[0]!.date, points[points.length - 1]!.date)
+  const annualized = span > 0 ? Math.pow(index, 365 / span) - 1 : index - 1
+  const sharpe = volatility > 0 ? (annualized - riskFreeRate) / volatility : null
+
+  return { volatility, maxDrawdown, sharpe }
+}
+
 /** A dated cashflow from the investor's view: negative = invested, positive = received. */
 export interface CashFlow {
   date: string
