@@ -18,9 +18,10 @@ import type { PeriodAttribution } from '@/lib/finance/contribution'
 const CONTRIB = '#5b9bff'
 const GAIN = '#56c98a'
 const LOSS = '#e5687a'
+const INCOME = '#b58bd6'
 
-/** Per-year stacked bars: contributions (always one colour) stacked with market
- *  P&L (green above zero, red below). Net bar height is the value change. */
+/** Per-year stacked bars: contributions, price return (green above zero, red
+ *  below), and income, stacked. Net bar height is the value change. */
 export function ContributionChart({
   periods,
   currency,
@@ -50,7 +51,14 @@ export function ContributionChart({
         <div className="mb-1 text-foreground">{label}</div>
         {payload.map((e) => {
           const v = Number(e.value)
-          const color = e.dataKey === 'marketPnl' ? (v >= 0 ? GAIN : LOSS) : CONTRIB
+          const color =
+            e.dataKey === 'pricePnl'
+              ? v >= 0
+                ? GAIN
+                : LOSS
+              : e.dataKey === 'income'
+                ? INCOME
+                : CONTRIB
           return (
             <div key={String(e.dataKey)} style={{ color }}>
               {e.name}: {fmtFull.format(v)}
@@ -82,9 +90,14 @@ export function ContributionChart({
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <ReferenceLine y={0} stroke="var(--color-border)" />
         <Bar dataKey="contribution" name="Contributions" stackId="a" fill={CONTRIB} />
-        <Bar dataKey="marketPnl" name="Market return" stackId="a" fill={GAIN}>
+        <Bar dataKey="pricePnl" name="Price return" stackId="a" fill={GAIN}>
           {periods.map((p) => (
-            <Cell key={p.period} fill={p.marketPnl >= 0 ? GAIN : LOSS} />
+            <Cell key={p.period} fill={p.pricePnl >= 0 ? GAIN : LOSS} />
+          ))}
+        </Bar>
+        <Bar dataKey="income" name="Income" stackId="a" fill={INCOME}>
+          {periods.map((p) => (
+            <Cell key={p.period} fill={p.income >= 0 ? INCOME : LOSS} />
           ))}
         </Bar>
       </BarChart>

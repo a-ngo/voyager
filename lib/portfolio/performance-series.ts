@@ -37,6 +37,8 @@ export interface PerformanceSeries {
   points: TradedPerfPoint[]
   /** Every buy/sell, for the click-a-month trade list. */
   trades: TradeDetail[]
+  /** Dated income receipts (dividends + interest, EUR) for return attribution. */
+  income: { date: string; amount: number }[]
   /** ISINs with no resolvable price history (excluded from value). */
   missing: string[]
 }
@@ -104,7 +106,7 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
   const transactions = await getTransactionsForUser(userId)
 
   if (transactions.length === 0) {
-    return { hasData: false, currency: 'EUR', points: [], trades: [], missing: [] }
+    return { hasData: false, currency: 'EUR', points: [], trades: [], income: [], missing: [] }
   }
 
   const num = (s: string | null) => (s == null ? null : Number(s))
@@ -121,6 +123,13 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
     }))
 
   const ledger = toLedger(transactions)
+
+  // Dividends + interest, by their cash delta (amount + fee + tax) — the exact
+  // amount each added to value, so price return nets out as the residual.
+  const income = ledger
+    .filter((t) => t.type === 'dividend' || t.type === 'interest')
+    .map((t) => ({ date: t.date, amount: (t.amount ?? 0) + (t.fee ?? 0) + (t.tax ?? 0) }))
+
   const first = transactions[0]!.date
   const heldIsins = [...new Set(ledger.map((t) => t.isin).filter((i): i is string => !!i))]
 
@@ -150,5 +159,5 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
     tradeFlow: flow[p.date.slice(0, 7)] ?? 0,
   }))
 
-  return { hasData: true, currency: 'EUR', points: traded, trades, missing }
+  return { hasData: true, currency: 'EUR', points: traded, trades, income, missing }
 }

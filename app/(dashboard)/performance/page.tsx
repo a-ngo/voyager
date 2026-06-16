@@ -66,21 +66,25 @@ export default async function PerformancePage() {
                 <InfoPopover label="Contribution vs. market return" wide>
                   <span className="block">
                     A decomposition of portfolio value into the capital contributed (deposits net of
-                    withdrawals) and the gain the market added on top of it. Market return is the
-                    current value minus contributed capital, and includes price changes, dividends,
-                    and fees.
+                    withdrawals) and the gain the market added on top of it. Market return splits
+                    into price return (changes in holding prices, net of fees) and income (dividends
+                    and interest received).
                   </span>
                   <span className="mt-1.5 block">
                     The per-year bars show, for each year, how much of the change in value came from
-                    new contributions versus market movement. It explains the gap between the
-                    time-weighted and money-weighted returns, which arises from the timing of
+                    new contributions, price movement, and income. It also explains the gap between
+                    the time-weighted and money-weighted returns, which arises from the timing of
                     contributions.
                   </span>
                 </InfoPopover>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ContributionBreakdown points={series.points} currency={series.currency} />
+              <ContributionBreakdown
+                points={series.points}
+                income={series.income}
+                currency={series.currency}
+              />
             </CardContent>
           </Card>
         </>
