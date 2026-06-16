@@ -11,6 +11,7 @@ import {
   Receipt,
   Settings,
   ScanSearch,
+  Boxes,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,6 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/xray', label: 'X-Ray', icon: ScanSearch, group: 'analytics', badge: 'new' },
   { href: '/news', label: 'News', icon: Newspaper, group: 'analytics', badge: 'new' },
   { href: '/projections', label: 'Projections', icon: Telescope, group: 'analytics', badge: 'new' },
+  { href: '/clusters', label: 'Clusters', icon: Boxes, group: 'analytics', badge: 'new' },
   { href: '/alerts', label: 'Alerts', icon: Bell, group: 'core' },
   { href: '/import', label: 'Import', icon: Upload, group: 'tools' },
   { href: '/assistant', label: 'AI Assistant', icon: MessageSquare, group: 'tools', badge: 'beta' },

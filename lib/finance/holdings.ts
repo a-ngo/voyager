@@ -198,6 +198,76 @@ export function reconstructPortfolio(transactions: LedgerTransaction[]): Portfol
   return { positions, cash, netContributions, income, fees, realizedPnl, currency }
 }
 
+/** Per-instrument ledger stats, including fully closed positions — for grouping
+ *  holdings (open and past) into custom clusters. Realized P/L and income span
+ *  all trades; cost basis/quantity reflect what is still held. Uses the same
+ *  average-cost rules as {@link reconstructPortfolio}. */
+export interface InstrumentStat {
+  key: string
+  isin: string | null
+  ticker: string | null
+  assetClass: AssetClass | null
+  /** Currently held shares (0 if closed). */
+  quantity: number
+  /** Cost basis of held shares (0 if closed). */
+  costBasis: number
+  /** Realized P/L from all sells of this instrument. */
+  realizedPnl: number
+  /** Income (dividends + interest) attributed to this instrument. */
+  income: number
+  /** Gross capital deployed into buys (fees capitalized) — a return denominator. */
+  invested: number
+  currency: string
+}
+
+export function instrumentLedgerStats(transactions: LedgerTransaction[]): InstrumentStat[] {
+  const map = new Map<string, MutablePosition>()
+  const income = new Map<string, number>()
+  const invested = new Map<string, number>()
+
+  for (const tx of transactions) {
+    const amount = tx.amount ?? 0
+    const fee = tx.fee ?? 0
+    const tax = tx.tax ?? 0
+    const shares = tx.quantity ?? 0
+    const key = positionKey(tx)
+
+    if (SHARE_MOVING_TYPES.has(tx.type) && Math.abs(shares) > EPSILON) {
+      const pos = getPosition(map, tx)
+      if (shares > 0) {
+        const cost = Math.max(0, -(amount + fee))
+        pos.quantity += shares
+        pos.costBasis += cost
+        invested.set(key, (invested.get(key) ?? 0) + cost)
+      } else {
+        const soldQty = -shares
+        const avgCost = pos.quantity > EPSILON ? pos.costBasis / pos.quantity : 0
+        const proceeds = amount + fee + tax
+        const costOfSold = avgCost * soldQty
+        pos.quantity += shares
+        pos.costBasis -= costOfSold
+        pos.realizedPnl += proceeds - costOfSold
+      }
+    } else if (tx.type === 'dividend' || tx.type === 'interest') {
+      getPosition(map, tx) // ensure the instrument exists even if never share-traded here
+      income.set(key, (income.get(key) ?? 0) + amount + fee + tax)
+    }
+  }
+
+  return [...map].map(([key, pos]) => ({
+    key,
+    isin: pos.isin,
+    ticker: pos.ticker,
+    assetClass: pos.assetClass,
+    quantity: Math.abs(pos.quantity) < EPSILON ? 0 : pos.quantity,
+    costBasis: Math.abs(pos.costBasis) < EPSILON ? 0 : pos.costBasis,
+    realizedPnl: pos.realizedPnl,
+    income: income.get(key) ?? 0,
+    invested: invested.get(key) ?? 0,
+    currency: pos.currency,
+  }))
+}
+
 export interface ValuedPosition extends Position {
   price: number | null
   marketValue: number | null
