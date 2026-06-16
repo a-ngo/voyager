@@ -22,6 +22,18 @@ const SCENARIO_META = [
   { id: 'custom', label: 'Custom', color: '#56c98a' },
 ] as const satisfies ScenarioLine[]
 
+const STORAGE_KEY = 'voyager:projections'
+
+interface ProjState {
+  initial: number
+  monthly: number
+  years: number
+  cashRate: number
+  histRate: number
+  customRate: number
+  target: number
+}
+
 /** Round to a clean 1 / 2 / 5 × 10ⁿ value (for the default target only). */
 function niceRound(n: number): number {
   if (n <= 0) return 0
@@ -50,6 +62,29 @@ export function ProjectionsView() {
   const [target, setTarget] = useState(0)
 
   const seeded = useRef(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restore saved inputs first; saved values win over the data-derived seed below.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const v = JSON.parse(raw) as Partial<ProjState>
+        if (typeof v.initial === 'number') setInitial(v.initial)
+        if (typeof v.monthly === 'number') setMonthly(v.monthly)
+        if (typeof v.years === 'number') setYears(v.years)
+        if (typeof v.cashRate === 'number') setCashRate(v.cashRate)
+        if (typeof v.histRate === 'number') setHistRate(v.histRate)
+        if (typeof v.customRate === 'number') setCustomRate(v.customRate)
+        if (typeof v.target === 'number') setTarget(v.target)
+        seeded.current = true // don't let the data-seed overwrite restored inputs
+      }
+    } catch {
+      // Corrupt state — fall back to the data-derived seed.
+    }
+    setHydrated(true)
+  }, [])
+
   useEffect(() => {
     if (seeded.current || !summary || perfLoading) return
     const nw = Math.round(summary.netWorth ?? 0)
@@ -63,6 +98,12 @@ export function ProjectionsView() {
     setTarget(niceRound(proj.points[Math.round(20 * 0.75)]?.value ?? proj.finalValue))
     seeded.current = true
   }, [summary, perf, perfLoading])
+
+  useEffect(() => {
+    if (!hydrated) return
+    const v: ProjState = { initial, monthly, years, cashRate, histRate, customRate, target }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(v))
+  }, [hydrated, initial, monthly, years, cashRate, histRate, customRate, target])
 
   const rates: Record<string, number> = { cash: cashRate, historical: histRate, custom: customRate }
 

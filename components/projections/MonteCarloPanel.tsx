@@ -16,6 +16,8 @@ const MonteCarloChart = dynamic(() => import('./MonteCarloChart').then((m) => m.
   ssr: false,
 })
 
+const STORAGE_KEY = 'voyager:projections:mc'
+
 function num(e: React.ChangeEvent<HTMLInputElement>): number {
   const n = Number(e.target.value)
   return Number.isFinite(n) ? n : 0
@@ -46,12 +48,38 @@ export function MonteCarloPanel({
   const [sims, setSims] = useState(1000)
   const [result, setResult] = useState<MonteCarloResult | null>(null)
   const [running, setRunning] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
   const workerRef = useRef<Worker | null>(null)
 
   const returnPct = returnOverride ?? defaultReturnPct
   const volPct = volOverride ?? defaultVolatilityPct
 
   useEffect(() => () => workerRef.current?.terminate(), [])
+
+  // Restore the user's overrides + simulation count across navigation.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const v = JSON.parse(raw) as {
+          returnOverride?: number | null
+          volOverride?: number | null
+          sims?: number
+        }
+        if (typeof v.returnOverride === 'number') setReturnOverride(v.returnOverride)
+        if (typeof v.volOverride === 'number') setVolOverride(v.volOverride)
+        if (typeof v.sims === 'number') setSims(v.sims)
+      }
+    } catch {
+      // Corrupt state — keep the data-derived defaults.
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ returnOverride, volOverride, sims }))
+  }, [hydrated, returnOverride, volOverride, sims])
 
   function run() {
     const input: MonteCarloInput = {
