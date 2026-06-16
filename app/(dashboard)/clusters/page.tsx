@@ -27,7 +27,11 @@ export default async function ClustersPage() {
           </CardContent>
         </Card>
       ) : (
-        <ClustersView instruments={breakdown.instruments} currency={breakdown.currency} />
+        <ClustersView
+          instruments={breakdown.instruments}
+          dates={breakdown.dates}
+          currency={breakdown.currency}
+        />
       )}
     </div>
   )

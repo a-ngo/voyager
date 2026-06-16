@@ -78,6 +78,50 @@ export function valueOverTime(
   })
 }
 
+export interface InstrumentValueSeries {
+  key: string
+  isin: string | null
+  /** EUR market value at each date in `dates` (0 before held / after closed). */
+  values: number[]
+}
+
+/**
+ * Per-instrument EUR market value at each sample date — the building block for
+ * per-cluster value-over-time. Same reconstruction + pricing as
+ * {@link valueOverTime}, but kept split by position instead of summed. Cash is
+ * excluded (it belongs to no instrument). Only instruments held at some date
+ * are returned; missing dates are 0.
+ */
+export function instrumentValueOverTime(
+  ledger: LedgerTransaction[],
+  series: InstrumentSeries[],
+  dates: string[],
+  rates: Record<string, number>,
+): InstrumentValueSeries[] {
+  const byIsin = new Map(series.map((s) => [s.isin, s]))
+  const map = new Map<string, { isin: string | null; values: number[] }>()
+
+  dates.forEach((date, di) => {
+    const summary = reconstructPortfolio(ledger.filter((t) => t.date <= date))
+    for (const pos of summary.positions) {
+      const s = pos.isin ? byIsin.get(pos.isin) : undefined
+      if (!s) continue
+      const close = priceAt(s.points, date)
+      if (close == null) continue
+      const eur = toEur(close * pos.quantity, s.currency, rates)
+      if (eur == null) continue
+      let rec = map.get(pos.key)
+      if (!rec) {
+        rec = { isin: pos.isin, values: new Array(dates.length).fill(0) }
+        map.set(pos.key, rec)
+      }
+      rec.values[di] = eur
+    }
+  })
+
+  return [...map].map(([key, r]) => ({ key, isin: r.isin, values: r.values }))
+}
+
 /** Month-end sample dates from `firstDate`'s month through `today` (today for the current month). */
 export function monthlyDates(firstDate: string, today: string): string[] {
   const start = new Date(`${firstDate}T00:00:00Z`)

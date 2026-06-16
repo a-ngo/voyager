@@ -131,23 +131,7 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
     .map((t) => ({ date: t.date, amount: (t.amount ?? 0) + (t.fee ?? 0) + (t.tax ?? 0) }))
 
   const first = transactions[0]!.date
-  const heldIsins = [...new Set(ledger.map((t) => t.isin).filter((i): i is string => !!i))]
-
-  const series: InstrumentSeries[] = []
-  const missing: string[] = []
-  for (const isin of heldIsins) {
-    const resolved = await resolveToSymbol(isin)
-    if (!resolved) {
-      missing.push(isin)
-      continue
-    }
-    const points = await getMonthlyHistory(db, resolved.symbol, resolved.currency, first)
-    if (points.length === 0) {
-      missing.push(isin)
-      continue
-    }
-    series.push({ isin, currency: resolved.currency, points })
-  }
+  const { series, missing } = await buildInstrumentSeries(db, ledger, first)
 
   const rates = await fetchEcbEurRates()
   const points = valueOverTime(ledger, series, monthlyDates(first, ymd(new Date())), rates)
@@ -160,4 +144,33 @@ export async function getPerformanceSeries(userId: string): Promise<PerformanceS
   }))
 
   return { hasData: true, currency: 'EUR', points: traded, trades, income, missing }
+}
+
+/**
+ * Resolve each held ISIN to a Yahoo symbol and load its monthly EUR-native close
+ * history. Shared by the performance series and the per-instrument cluster
+ * series. ISINs without a symbol or history are reported in `missing`.
+ */
+export async function buildInstrumentSeries(
+  db: Db,
+  ledger: ReturnType<typeof toLedger>,
+  fromYmd: string,
+): Promise<{ series: InstrumentSeries[]; missing: string[] }> {
+  const heldIsins = [...new Set(ledger.map((t) => t.isin).filter((i): i is string => !!i))]
+  const series: InstrumentSeries[] = []
+  const missing: string[] = []
+  for (const isin of heldIsins) {
+    const resolved = await resolveToSymbol(isin)
+    if (!resolved) {
+      missing.push(isin)
+      continue
+    }
+    const points = await getMonthlyHistory(db, resolved.symbol, resolved.currency, fromYmd)
+    if (points.length === 0) {
+      missing.push(isin)
+      continue
+    }
+    series.push({ isin, currency: resolved.currency, points })
+  }
+  return { series, missing }
 }

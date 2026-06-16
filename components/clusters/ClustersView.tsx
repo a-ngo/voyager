@@ -1,11 +1,17 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { GripVertical, Plus, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Money } from '@/components/shared/Money'
 import { clusterPerformance, type ClusterDef, type ClusterPerformance } from '@/lib/finance/clusters'
 import type { InstrumentBreakdownItem } from '@/lib/portfolio/instruments'
+
+const ClusterValueChart = dynamic(
+  () => import('./ClusterValueChart').then((m) => m.ClusterValueChart),
+  { ssr: false },
+)
 
 const STORAGE_KEY = 'voyager:clusters'
 const PALETTE = [
@@ -39,9 +45,11 @@ const pctText = (f: number | null) => (f == null ? '—' : `${f >= 0 ? '+' : ''}
 
 export function ClustersView({
   instruments,
+  dates,
   currency,
 }: {
   instruments: InstrumentBreakdownItem[]
+  dates: string[]
   currency: string
 }) {
   const [clusters, setClusters] = useState<ClusterDef[]>([])
@@ -71,6 +79,10 @@ export function ClustersView({
   }, [hydrated, clusters, assignments])
 
   const byKey = useMemo(() => new Map(instruments.map((i) => [i.key, i])), [instruments])
+  const seriesByKey = useMemo(
+    () => new Map(instruments.map((i) => [i.key, i.valueSeries])),
+    [instruments],
+  )
 
   const perf = useMemo(
     () =>
@@ -89,6 +101,30 @@ export function ClustersView({
       ),
     [clusters, assignments, instruments],
   )
+
+  const { chartData, chartLines } = useMemo(() => {
+    const cols = [
+      ...perf.clusters.map((p, i) => ({
+        id: clusters[i]!.id,
+        name: clusters[i]!.name,
+        color: clusters[i]!.color,
+        keys: p.keys,
+      })),
+      { id: 'unassigned', name: 'Unassigned', color: '#8a8a8a', keys: perf.unassigned.keys },
+    ]
+    const data = dates.map((date, di) => {
+      const row: Record<string, number | string> = { date }
+      for (const c of cols) {
+        row[c.id] = c.keys.reduce((sum, k) => sum + (seriesByKey.get(k)?.[di] ?? 0), 0)
+      }
+      return row
+    })
+    // Always show cluster lines; show Unassigned only while it holds value.
+    const lines = cols
+      .filter((c) => c.id !== 'unassigned' || data.some((r) => (r[c.id] as number) > 0.5))
+      .map(({ id, name, color }) => ({ id, name, color }))
+    return { chartData: data, chartLines: lines }
+  }, [perf, clusters, dates, seriesByKey])
 
   function assign(key: string, clusterId: string | null) {
     setAssignments((prev) => {
@@ -199,6 +235,23 @@ export function ClustersView({
           </table>
         </CardContent>
       </Card>
+
+      {dates.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Cluster value over time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ClusterValueChart data={chartData} lines={chartLines} currency={currency} />
+            </div>
+            <p className="mt-2 text-xs text-faint">
+              Market value of each cluster’s holdings at each month-end. Updates as you reassign
+              holdings. A position drops to zero once fully sold.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-3 overflow-x-auto pb-2">
         {columns.map(({ id, def, perf: p }) => (
