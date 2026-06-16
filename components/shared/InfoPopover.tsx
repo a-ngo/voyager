@@ -5,7 +5,15 @@ import { Info } from 'lucide-react'
 
 /** A small "ⓘ" button that toggles a brief explanation popover on click (works
  *  on touch, unlike hover/title). Closes on outside click or Escape. */
-export function InfoPopover({ label, children }: { label: string; children: React.ReactNode }) {
+export function InfoPopover({
+  label,
+  children,
+  wide = false,
+}: {
+  label: string
+  children: React.ReactNode
+  wide?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
 
@@ -39,7 +47,9 @@ export function InfoPopover({ label, children }: { label: string; children: Reac
       {open && (
         <span
           role="tooltip"
-          className="absolute left-0 top-full z-50 mt-1.5 w-60 rounded-md border border-border bg-panel p-2.5 text-left text-[11px] font-normal normal-case leading-relaxed tracking-normal text-muted shadow-lg"
+          className={`absolute left-0 top-full z-50 mt-1.5 ${
+            wide ? 'w-80' : 'w-60'
+          } rounded-md border border-border bg-panel p-2.5 text-left text-[11px] font-normal normal-case leading-relaxed tracking-normal text-muted shadow-lg`}
         >
           <span className="mb-0.5 block font-medium text-foreground">{label}</span>
           {children}

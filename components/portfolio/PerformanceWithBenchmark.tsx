@@ -239,9 +239,17 @@ export function PerformanceWithBenchmark({
         <div>
           <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-faint">
             Time-weighted return · ann.
-            <InfoPopover label="Time-weighted return">
-              The compound annual growth rate of the portfolio with the effect of contribution
-              timing removed, making it directly comparable across portfolios and benchmarks.
+            <InfoPopover label="Time-weighted return" wide>
+              <span className="block">
+                The compound annual growth rate of the portfolio with the effect of contribution
+                timing removed. It measures the performance of the holdings themselves, independent
+                of when capital was added, and is therefore comparable across portfolios and
+                benchmarks.
+              </span>
+              <span className="mt-1.5 block">
+                A quoted index or fund return, such as a world ETF near 7%, is stated on this same
+                time-weighted basis (equivalently, its compound annual growth rate).
+              </span>
             </InfoPopover>
           </p>
           <div className="mt-0.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
@@ -272,9 +280,26 @@ export function PerformanceWithBenchmark({
         <div>
           <p className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-faint">
             Money-weighted · ann.
-            <InfoPopover label="Money-weighted return">
-              The portfolio’s annualized internal rate of return (IRR). Unlike the time-weighted
-              return, it reflects the size and timing of contributions and withdrawals.
+            <InfoPopover label="Money-weighted return" wide>
+              <span className="block">
+                The portfolio’s annualized internal rate of return (IRR; German: interner Zinsfuß).
+                In contrast to the time-weighted return, it weights each period by the amount of
+                capital invested, and so reflects the return earned by the contributed capital
+                itself, timing included.
+              </span>
+              <span className="mt-1.5 block font-medium text-foreground">Relationship to TWR</span>
+              <span className="block">
+                MWR {'>'} TWR: capital was added ahead of stronger periods (favorable timing).
+              </span>
+              <span className="block">MWR = TWR: contributions were minimal or evenly timed.</span>
+              <span className="block">
+                MWR {'<'} TWR: capital was added ahead of weaker periods (unfavorable timing).
+              </span>
+              <span className="mt-1.5 block">
+                Time-weighted return is the basis for judging the holdings or comparing to a
+                benchmark; money-weighted return measures the realized outcome of the invested
+                capital, timing included.
+              </span>
             </InfoPopover>
           </p>
           <p className="mt-0.5 text-sm">
