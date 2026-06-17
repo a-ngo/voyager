@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { ArrowRight, ScanSearch, Telescope, Boxes, MessageSquare, Newspaper, Upload } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Money } from '@/components/shared/Money'
+import { InfoPopover } from '@/components/shared/InfoPopover'
 import type { PerfPoint } from '@/lib/finance/performance'
 
 const PerformanceChart = dynamic(
@@ -17,12 +18,11 @@ const AllocationDonut = dynamic(
   { ssr: false },
 )
 
-export interface HomeDriftItem {
+export interface HomeContributor {
   label: string
-  currentPct: number
-  targetPct: number
-  driftPct: number
-  breached: boolean
+  /** Unrealized gain/loss in the portfolio currency (absolute contribution). */
+  pnl: number
+  returnPct: number | null
 }
 
 export interface HomeHolding {
@@ -52,8 +52,7 @@ export interface HomeData {
   realizedPnl: number
   asOf: string | null
   allocation: { label: string; value: number; weight: number; color: string }[]
-  hasTargets: boolean
-  drift: HomeDriftItem[]
+  contributors: HomeContributor[]
   topHoldings: HomeHolding[]
   recent: HomeActivity[]
   perf: PerfPoint[]
@@ -146,27 +145,31 @@ export function HomeView({ data }: { data: HomeData }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm">Target drift</CardTitle>
+            <CardTitle className="flex items-center gap-1 text-sm">
+              Top contributors
+              <InfoPopover label="Top contributors">
+                The three holdings with the largest unrealized gains and the three with the largest
+                unrealized losses, measured as the absolute amount in {data.currency} each currently
+                adds to or subtracts from the portfolio. Gains are listed first, losses last.
+              </InfoPopover>
+            </CardTitle>
             <SeeMore href="/portfolio" />
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            {!data.hasTargets ? (
-              <p className="text-xs text-muted">
-                No target allocation set. Define one to track rebalancing drift.
-              </p>
-            ) : data.drift.length === 0 ? (
-              <p className="text-xs text-muted">On target.</p>
+            {data.contributors.length === 0 ? (
+              <Empty>No priced holdings.</Empty>
             ) : (
-              data.drift.map((d) => (
-                <div key={d.label} className="flex items-baseline justify-between">
-                  <span className="text-foreground">{d.label}</span>
-                  <span className="flex items-baseline gap-2 tabular-nums">
-                    <span className="text-xs text-faint">
-                      {d.currentPct.toFixed(0)}% / {d.targetPct.toFixed(0)}%
-                    </span>
-                    <span className={d.breached ? 'font-medium text-negative' : 'text-muted'}>
-                      {pct(d.driftPct)}
-                    </span>
+              data.contributors.map((c) => (
+                <div key={c.label} className="flex items-baseline justify-between gap-2">
+                  <span className="min-w-0 flex-1 truncate text-foreground" title={c.label}>
+                    {c.label}
+                  </span>
+                  {c.returnPct != null && (
+                    <span className="shrink-0 text-xs text-faint">{pct(c.returnPct)}</span>
+                  )}
+                  <span className={`shrink-0 tabular-nums ${signClass(c.pnl)}`}>
+                    {c.pnl >= 0 ? '+' : ''}
+                    <Money value={c.pnl} currency={data.currency} />
                   </span>
                 </div>
               ))

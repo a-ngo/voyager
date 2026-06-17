@@ -6,10 +6,7 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 import { getValuedOverview } from '@/lib/portfolio/valued-overview'
 import { getPerformanceSeries } from '@/lib/portfolio/performance-series'
-import { computeDrift } from '@/lib/finance/drift'
 import { HomeView, type HomeData } from '@/components/home/HomeView'
-
-const DRIFT_THRESHOLD_PCT = 5
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -44,20 +41,22 @@ export default async function HomePage() {
 
   const perf = await getPerformanceSeries(user.id)
 
-  const bucketLabel = new Map<string, string>(overview.allocation.map((s) => [s.bucket, s.label]))
-  const current: Record<string, number> = {}
-  for (const s of overview.allocation) current[s.bucket] = s.weight
-  const report = computeDrift(current, overview.targets, DRIFT_THRESHOLD_PCT)
-  const drift = report.items
-    .filter((i) => i.current > 0.5 || i.target > 0.5)
-    .slice(0, 4)
-    .map((i) => ({
-      label: bucketLabel.get(i.key) ?? i.key,
-      currentPct: i.current,
-      targetPct: i.target,
-      driftPct: i.drift,
-      breached: i.breached,
-    }))
+  // Top contributors: the 3 holdings with the largest unrealized gains and the 3
+  // with the largest unrealized losses (absolute €).
+  const withPnl = overview.positions.filter((p) => p.unrealizedPnl != null)
+  const gainers = withPnl
+    .filter((p) => (p.unrealizedPnl ?? 0) > 0)
+    .sort((a, b) => (b.unrealizedPnl ?? 0) - (a.unrealizedPnl ?? 0))
+    .slice(0, 3)
+  const losers = withPnl
+    .filter((p) => (p.unrealizedPnl ?? 0) < 0)
+    .sort((a, b) => (a.unrealizedPnl ?? 0) - (b.unrealizedPnl ?? 0))
+    .slice(0, 3)
+  const contributors = [...gainers, ...losers].map((p) => ({
+    label: p.label,
+    pnl: p.unrealizedPnl ?? 0,
+    returnPct: p.costBasis > 0 && p.unrealizedPnl != null ? (p.unrealizedPnl / p.costBasis) * 100 : null,
+  }))
 
   const topHoldings = overview.positions
     .filter((p) => p.marketValue != null)
@@ -98,8 +97,7 @@ export default async function HomePage() {
       weight: s.weight,
       color: s.color,
     })),
-    hasTargets: Object.keys(overview.targets).length > 0,
-    drift,
+    contributors,
     topHoldings,
     recent,
     perf: perf.points,
