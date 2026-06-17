@@ -1,5 +1,5 @@
 import 'server-only'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { MappedTransaction } from '@/lib/import/types'
 import type { PersistTransaction } from '@/lib/import/trade-republic/importer'
 import { getDb } from './index'
@@ -114,14 +114,32 @@ export async function getOrCreateDefaultPortfolio(userId: string): Promise<strin
 }
 
 /**
- * Builds a persist callback bound to one user + portfolio. Each call upserts a
- * single transaction with onConflictDoNothing on (user_id, broker, external_id):
- * re-importing the same file inserts nothing and reports every row as skipped.
+ * Builds a persist callback bound to one user + broker + portfolio. Loads the
+ * user's existing external_ids for the broker once, then dedups each incoming
+ * row against BOTH its primary key (the broker's transaction id) and its
+ * `legacyExternalId` (content-derived) — so a row imported under the old
+ * content-only scheme is still recognized after the transaction id became the
+ * primary key, and nothing double-imports across the cutover. `onConflictDoNothing`
+ * remains the backstop against races and within-batch collisions.
  */
-export function makePersist(userId: string, portfolioId: string): PersistTransaction {
+export async function makePersist(
+  userId: string,
+  portfolioId: string,
+  broker: MappedTransaction['broker'] = 'trade_republic',
+): Promise<PersistTransaction> {
   const db = getDb()
 
+  const existingRows = await db
+    .select({ externalId: transactions.externalId })
+    .from(transactions)
+    .where(and(eq(transactions.userId, userId), eq(transactions.broker, broker)))
+  const seen = new Set(existingRows.map((r) => r.externalId).filter((id): id is string => !!id))
+
   return async (tx: MappedTransaction) => {
+    if (seen.has(tx.externalId) || (tx.legacyExternalId != null && seen.has(tx.legacyExternalId))) {
+      return 'skipped'
+    }
+
     const inserted = await db
       .insert(transactions)
       .values({
@@ -151,6 +169,10 @@ export function makePersist(userId: string, portfolioId: string): PersistTransac
       })
       .returning({ id: transactions.id })
 
-    return inserted.length > 0 ? 'inserted' : 'skipped'
+    if (inserted.length > 0) {
+      seen.add(tx.externalId)
+      return 'inserted'
+    }
+    return 'skipped'
   }
 }

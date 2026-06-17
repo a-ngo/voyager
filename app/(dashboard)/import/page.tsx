@@ -14,6 +14,7 @@ interface ImportResult {
   total: number
   imported: number
   skipped: number
+  ignored: number
   errors: ImportError[]
 }
 
@@ -137,14 +138,18 @@ export default function ImportPage() {
             <CardTitle>Import summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Stat label="Imported" value={result.imported} tone="positive" />
               <Stat label="Skipped" value={result.skipped} tone="muted" />
+              <Stat label="Ignored" value={result.ignored} tone="muted" />
               <Stat label="Errors" value={result.errors.length} tone="negative" />
             </div>
             <p className="mt-3 text-xs text-muted">
               {result.imported} transactions imported, {result.skipped} already existed and were
-              skipped, {result.errors.length} errors.
+              skipped, {result.errors.length} errors
+              {result.ignored > 0 &&
+                `, ${result.ignored} ignored (IPO subscription cash entries, represented by the resulting trade)`}
+              .
             </p>
             {result.errors.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1 text-xs text-negative">

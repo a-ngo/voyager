@@ -135,3 +135,99 @@ describe('content-based deduplication', () => {
     expect(second.skipped).toBe(10)
   })
 })
+
+const HEADER =
+  'datetime;date;type;transaction_id;asset_class;name;symbol;shares;price;amount;fee;tax;currency;original_amount;original_currency;fx_rate'
+
+/** One BUY row carrying a broker transaction id. */
+function withTxnId(txnId = 'tr-abc-123'): string {
+  return `${HEADER}\n2024-01-10T10:00:00+00:00;2024-01-10;BUY;${txnId};stock;Test Stock;TESTSTK00001;10;100;-1000;;;EUR;;;`
+}
+
+const CONTENT_KEY = '2024-01-10T10:00:00+00:00|BUY|TESTSTK00001|10|-1000|'
+
+describe('transaction-id deduplication', () => {
+  it('uses the broker transaction id as the key, keeping the content key as legacy', () => {
+    const [t] = prepareTradeRepublicImport(withTxnId()).transactions
+    expect(t!.externalId).toBe('tr-abc-123')
+    expect(t!.legacyExternalId).toBe(CONTENT_KEY)
+  })
+
+  it('falls back to the content key when no transaction id is present', () => {
+    const [t] = prepareTradeRepublicImport(SAMPLE).transactions
+    expect(t!.externalId).toBe(t!.legacyExternalId) // primary == content key
+  })
+
+  // Mirrors makePersist's dual-key check: skip if EITHER key is already known.
+  function dualKeyPersist(seen: Set<string>): PersistTransaction {
+    return async (tx) => {
+      if (seen.has(tx.externalId) || (tx.legacyExternalId != null && seen.has(tx.legacyExternalId))) {
+        return 'skipped'
+      }
+      seen.add(tx.externalId)
+      return 'inserted'
+    }
+  }
+
+  it('does not re-import a row already stored under the old content-only scheme', async () => {
+    // The trade is already in the DB keyed by its content hash (pre-cutover).
+    const seen = new Set<string>([CONTENT_KEY])
+    const res = await importTradeRepublicCsv(withTxnId(), dualKeyPersist(seen))
+    expect(res.imported).toBe(0)
+    expect(res.skipped).toBe(1)
+  })
+
+  it('is idempotent on re-import once keyed by transaction id', async () => {
+    const seen = new Set<string>()
+    const persist = dualKeyPersist(seen)
+    expect((await importTradeRepublicCsv(withTxnId(), persist)).imported).toBe(1)
+    expect((await importTradeRepublicCsv(withTxnId(), persist)).skipped).toBe(1)
+  })
+})
+
+/**
+ * A real IPO subscription episode: a cash pre-payment (with access fee), a
+ * partial refund, then the BUY for the filled shares (no amount on the row).
+ */
+function ipoSubscriptionEpisode(): string {
+  return [
+    HEADER,
+    '2026-06-08T09:00:00+00:00;2026-06-08;IPO_SUBSCRIPTION;ipo-prepay;stock;SpaceX;US84615Q1031;;;-1429.09;-1.00;;EUR;;;',
+    '2026-06-12T09:00:00+00:00;2026-06-12;IPO_SUBSCRIPTION;ipo-refund;stock;SpaceX;US84615Q1031;;;1244.28;;;EUR;;;',
+    '2026-06-12T10:00:00+00:00;2026-06-12;BUY;ipo-buy;stock;SpaceX;US84615Q1031;1.582812;116.762806;;;;EUR;;;',
+  ].join('\n')
+}
+
+describe('IPO subscription handling', () => {
+  it('drops the reserved cash, keeps the access fee, and reconstructs the BUY amount', () => {
+    const { transactions, ignored, errors } = prepareTradeRepublicImport(ipoSubscriptionEpisode())
+    expect(errors).toHaveLength(0)
+    expect(ignored).toBe(1) // the refund row (no fee) is ignored
+    expect(transactions).toHaveLength(2) // the access fee + the BUY
+
+    const fee = transactions.find((t) => t.type === 'fee')!
+    expect(fee.fee).toBeCloseTo(-1, 6)
+    expect(fee.amount).toBe(0) // reserved cash dropped; only the fee remains
+    expect(fee.isin).toBe('US84615Q1031')
+
+    const buy = transactions.find((t) => t.type === 'buy')!
+    expect(buy.quantity).toBeCloseTo(1.582812, 6)
+    // amount reconstructed from shares × price → correct cost basis downstream
+    expect(buy.amount).toBeCloseTo(-(1.582812 * 116.762806), 4)
+  })
+
+  it('net cash and shares reconcile end-to-end', async () => {
+    const persist: PersistTransaction = async () => 'inserted'
+    const res = await importTradeRepublicCsv(ipoSubscriptionEpisode(), persist)
+    expect(res.total).toBe(3)
+    expect(res.imported).toBe(2) // fee + buy
+    expect(res.ignored).toBe(1) // refund
+    expect(res.errors).toHaveLength(0)
+  })
+
+  it('reconstructs a trade amount from shares × price only when the export omits it', () => {
+    const csv = `${HEADER}\n2026-01-01T09:00:00+00:00;2026-01-01;BUY;id1;stock;X;ISIN00000001;2;50;;;;EUR;;;`
+    const [t] = prepareTradeRepublicImport(csv).transactions
+    expect(t!.amount).toBeCloseTo(-100, 6) // 2 × 50, cash out
+  })
+})

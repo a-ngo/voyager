@@ -33,7 +33,15 @@ export interface MappedTransaction {
   date: string
   datetime: string
   broker: Broker
+  /** Primary dedup key: the broker's transaction id when available, else content-derived. */
   externalId: string
+  /**
+   * Content-derived dedup key, kept alongside `externalId` so a row that was
+   * imported under the old (content-only) scheme is still recognized as a
+   * duplicate after the broker id became the primary key. Undefined when the
+   * primary key already is the content key.
+   */
+  legacyExternalId?: string | null
 }
 
 /** A row that failed validation or mapping, reported back to the user. */
@@ -47,5 +55,7 @@ export interface ImportResult {
   total: number
   imported: number
   skipped: number
+  /** Rows intentionally not imported because their type is ignored (e.g. IPO subscriptions). */
+  ignored: number
   errors: ImportError[]
 }

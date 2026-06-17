@@ -9,6 +9,7 @@ export const TRRowSchema = z.object({
   datetime: z.string().datetime({ offset: true }), // ISO 8601, microsecond precision OK
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   type: z.string().min(1), // Validated against TR_TYPE_MAP downstream
+  transaction_id: z.string().optional(), // Broker's own id — preferred dedup key when present
   asset_class: z.string().optional(),
   name: z.string().optional(), // Instrument name supplied by the export
   symbol: z.string().optional(), // ISIN — optional for cash transactions

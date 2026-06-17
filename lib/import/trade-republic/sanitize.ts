@@ -10,6 +10,7 @@ export const TR_ALLOWED_COLUMNS = [
   'datetime',
   'date',
   'type',
+  'transaction_id',
   'asset_class',
   'name',
   'symbol',

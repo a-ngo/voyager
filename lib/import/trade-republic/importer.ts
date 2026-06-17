@@ -37,18 +37,22 @@ function nullifyEmpty(row: Record<TRAllowedColumn, string>): Record<string, stri
 export interface PreparedImport {
   total: number
   transactions: MappedTransaction[]
+  /** Rows skipped because their TR type is intentionally ignored (e.g. IPO subscriptions). */
+  ignored: number
   errors: ImportError[]
 }
 
 /**
  * Pure: parse → strip PII (allowlist) → validate → map TR types to Voyager types.
  * No DB, no fetch — fully unit-testable with CSV fixtures.
- * Rows that fail validation or carry an unknown TR type are reported, not dropped.
+ * Rows that fail validation or carry an unknown TR type are reported, not dropped;
+ * rows of an intentionally ignored type are counted in `ignored`, not errored.
  */
 export function prepareTradeRepublicImport(csvText: string): PreparedImport {
   const { rows } = parseCsv(csvText)
   const transactions: MappedTransaction[] = []
   const errors: ImportError[] = []
+  let ignored = 0
 
   rows.forEach((rawRow, index) => {
     const rowNumber = index + 2 // +1 for header, +1 for 1-based display
@@ -64,6 +68,48 @@ export function prepareTradeRepublicImport(csvText: string): PreparedImport {
     }
 
     const tr = parsed.data
+    const contentKey = dedupKey(tr)
+    // Prefer the broker's transaction id; fall back to the content key. Keep the
+    // content key as the legacy key so rows imported before the id was adopted
+    // are still recognized as duplicates.
+    const externalId = tr.transaction_id ?? contentKey
+    const sharesNum = parseNumber(tr.shares)
+    const priceNum = parseNumber(tr.price)
+
+    // IPO_SUBSCRIPTION: a cash pre-payment/refund pair reserving money for an IPO.
+    // The reserved cash is represented by the eventual BUY (whose row carries
+    // shares + price but no amount — reconstructed below), so the reserved amount
+    // is dropped here. Only the subscription access fee is kept, as a fee; rows
+    // without a fee (e.g. the refund) are counted as ignored.
+    if (tr.type === 'IPO_SUBSCRIPTION') {
+      const feeValue = parseNumber(tr.fee)
+      if (feeValue != null && feeValue !== 0) {
+        transactions.push({
+          type: 'fee',
+          assetClass: mapAssetClass(tr.asset_class),
+          isin: tr.symbol ?? null,
+          ticker: null,
+          name: cleanName(tr.name),
+          quantity: null,
+          price: null,
+          amount: 0,
+          fee: feeValue,
+          tax: null,
+          currency: tr.currency ?? 'EUR',
+          originalAmount: null,
+          originalCurrency: null,
+          fxRate: null,
+          date: tr.date,
+          datetime: tr.datetime,
+          broker: 'trade_republic',
+          externalId,
+          legacyExternalId: contentKey,
+        })
+      } else {
+        ignored += 1
+      }
+      return
+    }
 
     // TAX_OPTIMIZATION carries its cash in the (signed) tax column, not amount:
     // positive = refund (cash in), negative = charge (cash out). Normalize it so
@@ -85,14 +131,21 @@ export function prepareTradeRepublicImport(csvText: string): PreparedImport {
       return
     }
 
+    // Reconstruct a trade's cash amount when the export omits it (e.g. an IPO fill
+    // whose cash settled via the subscription pre-payments): without this the cost
+    // basis would be booked as zero.
+    if ((type === 'buy' || type === 'sell') && amount === null && sharesNum !== null && priceNum !== null) {
+      amount = -(sharesNum * priceNum)
+    }
+
     transactions.push({
       type,
       assetClass: mapAssetClass(tr.asset_class),
       isin: tr.symbol ?? null,
       ticker: null, // resolved lazily via OpenFIGI after import
       name: cleanName(tr.name),
-      quantity: parseNumber(tr.shares),
-      price: parseNumber(tr.price),
+      quantity: sharesNum,
+      price: priceNum,
       amount,
       fee: parseNumber(tr.fee),
       tax,
@@ -103,11 +156,12 @@ export function prepareTradeRepublicImport(csvText: string): PreparedImport {
       date: tr.date,
       datetime: tr.datetime,
       broker: 'trade_republic',
-      externalId: dedupKey(tr),
+      externalId,
+      legacyExternalId: contentKey,
     })
   })
 
-  return { total: rows.length, transactions, errors }
+  return { total: rows.length, transactions, ignored, errors }
 }
 
 /** Trim the instrument name; blank/whitespace becomes null. */
@@ -117,10 +171,12 @@ function cleanName(value: string | undefined): string | null {
 }
 
 /**
- * Content-based dedup key. The TR export has no transaction id, and each export
- * is cumulative, so we identify a transaction by its immutable content (time +
- * instrument + size). Re-importing the same or a later export skips rows already
- * seen (idempotent), keyed via UNIQUE (user_id, broker, external_id).
+ * Content-based dedup key — the fallback when the export omits a transaction id.
+ * Each export is cumulative, so a transaction is identified by its immutable
+ * content (time + instrument + size). Re-importing the same or a later export
+ * skips rows already seen (idempotent), keyed via UNIQUE (user_id, broker,
+ * external_id). When the broker supplies a transaction id, that is used as the
+ * primary key instead and this becomes the `legacyExternalId`.
  */
 function dedupKey(tr: TRRow): string {
   return [tr.datetime, tr.type, tr.symbol ?? '', tr.shares ?? '', tr.amount ?? '', tr.tax ?? '']
@@ -156,5 +212,5 @@ export async function importTradeRepublicCsv(
     }
   })
 
-  return { total: prepared.total, imported, skipped, errors }
+  return { total: prepared.total, imported, skipped, ignored: prepared.ignored, errors }
 }

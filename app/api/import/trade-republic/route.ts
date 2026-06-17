@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   try {
     const portfolioId = await getOrCreateDefaultPortfolio(user.id)
-    const persist = makePersist(user.id, portfolioId)
+    const persist = await makePersist(user.id, portfolioId, 'trade_republic')
     const result = await importTradeRepublicCsv(csvText, persist)
     return NextResponse.json(result)
   } catch {

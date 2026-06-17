@@ -27,6 +27,11 @@ export const TR_TYPE_MAP: Record<string, TransactionType> = {
   // TAX_OPTIMIZATION is sign-dependent (refund vs charge) and handled in the importer.
 }
 
+// IPO_SUBSCRIPTION is not mapped here: it is a cash pre-payment/refund pair that
+// reserves money for an upcoming IPO. The reserved cash is represented by the
+// eventual BUY, so the importer drops the reserved amount and keeps only the
+// access fee (handled in the importer, like TAX_OPTIMIZATION).
+
 export function mapTrType(trType: string): TransactionType | null {
   return TR_TYPE_MAP[trType] ?? null
 }
