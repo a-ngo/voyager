@@ -30,7 +30,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     return { error: 'Invalid email or password.' }
   }
 
-  redirect('/dashboard')
+  redirect('/home')
 }
 
 export async function signup(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -53,7 +53,7 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
     return { message: 'Check your email to confirm your account, then sign in.' }
   }
 
-  redirect('/dashboard')
+  redirect('/home')
 }
 
 export async function signout(): Promise<void> {

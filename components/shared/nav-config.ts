@@ -1,4 +1,5 @@
 import {
+  Home,
   LayoutDashboard,
   LineChart,
   Bell,
@@ -35,6 +36,7 @@ export interface NavItem {
  * Adding a page = add one entry here + create the route.
  */
 export const NAV_ITEMS: NavItem[] = [
+  { href: '/home', label: 'Home', icon: Home, group: 'core' },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'core' },
   { href: '/portfolio', label: 'Portfolio', icon: PieChart, group: 'core' },
   { href: '/transactions', label: 'Transactions', icon: Receipt, group: 'core' },
