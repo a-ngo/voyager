@@ -17,6 +17,14 @@ export interface WidgetProps<TConfig = unknown> {
   isEditMode: boolean
 }
 
+/** Props for a widget's optional config form, opened from the edit-mode gear. */
+export interface WidgetConfigProps<TConfig = unknown> {
+  config: TConfig
+  onConfigChange: (config: TConfig) => void
+  /** Close the config panel (e.g. after saving). */
+  onClose: () => void
+}
+
 export interface WidgetDefinition<TConfig = unknown> {
   /** Unique stable identifier — never rename after creation (stored in DB). */
   type: string
@@ -30,6 +38,8 @@ export interface WidgetDefinition<TConfig = unknown> {
   configSchema: z.ZodType<TConfig>
   defaultConfig: TConfig
   component: ComponentType<WidgetProps<TConfig>>
+  /** Optional config editor, shown via the edit-mode gear in WidgetShell. */
+  ConfigForm?: ComponentType<WidgetConfigProps<TConfig>>
 }
 
 // ─── REGISTRY ────────────────────────────────────────────────────────────────
@@ -92,6 +102,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition<any>> = {
     }),
     defaultConfig: { goal: 250000 },
     component: lazy(() => import('./kpi/NetWorthGoalWidget')),
+    ConfigForm: lazy(() => import('./kpi/NetWorthGoalConfig')),
   },
   'allocation-target': {
     type: 'allocation-target',

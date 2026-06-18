@@ -158,12 +158,26 @@ export function WidgetGrid() {
           const def = getWidgetDefinition(instance.type)
           if (!def) return <div key={instance.id} />
           const Component = def.component
+          const ConfigForm = def.ConfigForm
           return (
             <div key={instance.id}>
               <WidgetShell
                 title={def.label}
                 isEditMode={editMode}
                 onRemove={() => removeWidget(instance.id)}
+                renderConfig={
+                  ConfigForm
+                    ? (close) => (
+                        <Suspense fallback={null}>
+                          <ConfigForm
+                            config={instance.config}
+                            onConfigChange={(config) => updateConfig(instance.id, config)}
+                            onClose={close}
+                          />
+                        </Suspense>
+                      )
+                    : undefined
+                }
               >
                 <Suspense
                   fallback={<div className="h-full animate-pulse rounded bg-panel-elevated" />}
