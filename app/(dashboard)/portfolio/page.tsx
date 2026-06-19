@@ -119,6 +119,7 @@ export default async function PortfolioPage() {
                   <th className="py-2 text-right font-medium">Avg cost</th>
                   <th className="py-2 text-right font-medium">Price</th>
                   <th className="py-2 text-right font-medium">Market value</th>
+                  <th className="py-2 text-right font-medium">Weight</th>
                   <th className="py-2 text-right font-medium">Unrealized</th>
                 </tr>
               </thead>
@@ -130,6 +131,14 @@ export default async function PortfolioPage() {
                       : p.unrealizedPnl >= 0
                         ? 'text-positive'
                         : 'text-negative'
+                  const pnlPct =
+                    p.unrealizedPnl != null && p.costBasis !== 0
+                      ? (p.unrealizedPnl / p.costBasis) * 100
+                      : null
+                  const weight =
+                    p.marketValue != null && o.netWorth !== 0
+                      ? (p.marketValue / o.netWorth) * 100
+                      : null
                   return (
                     <tr key={p.key}>
                       <td className="py-2">
@@ -147,8 +156,23 @@ export default async function PortfolioPage() {
                       <td className="py-2 text-right tabular-nums text-foreground">
                         {p.marketValue == null ? '—' : <Money value={p.marketValue} currency={c} />}
                       </td>
+                      <td className="py-2 text-right tabular-nums text-muted">
+                        {weight == null ? '—' : `${weight.toFixed(1)}%`}
+                      </td>
                       <td className={`py-2 text-right tabular-nums ${pnlTone}`}>
-                        {p.unrealizedPnl == null ? '—' : <Money value={p.unrealizedPnl} currency={c} />}
+                        {p.unrealizedPnl == null ? (
+                          '—'
+                        ) : (
+                          <>
+                            <Money value={p.unrealizedPnl} currency={c} />
+                            {pnlPct != null && (
+                              <span className="ml-1">
+                                ({pnlPct >= 0 ? '+' : ''}
+                                {pnlPct.toFixed(1)}%)
+                              </span>
+                            )}
+                          </>
+                        )}
                       </td>
                     </tr>
                   )
